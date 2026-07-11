@@ -1,0 +1,13 @@
+# DonutShards primary settings. Values are merged without overwriting custom keys.
+schema-version: 1
+server-id: "server-1"
+maximum-balance: 9000000000000000
+transfer:
+  minimum: 1
+  maximum: 1000000
+  tax-basis-points: 0
+  confirmation-threshold: 100000
+leaderboard:
+  page-size: 10
+  cache-seconds: 60
+debug: false

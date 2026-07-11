@@ -1,0 +1,10 @@
+# Detection is advisory by default and never stores raw IP addresses.
+schema-version: 1
+enabled: true
+ip-account-limit: 3
+fingerprint-retention-days: 30
+minimum-meaningful-movement: 0.75
+stationary-seconds: 900
+zone-churn-window-seconds: 300
+zone-churn-limit: 8
+responses: [SKIP_REWARD, LOG_INCIDENT]

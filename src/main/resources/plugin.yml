@@ -1,0 +1,54 @@
+name: DonutShards
+version: '${version}'
+main: com.nightbeam.donutshards.DonutShardsPlugin
+api-version: '1.20'
+folia-supported: true
+description: A configurable shard economy, AFK reward, shop, and progression system.
+author: Nightbeam
+softdepend: [PlaceholderAPI, Vault]
+commands:
+  shards:
+    aliases: [donutshards, dshards]
+    permission: shards.use
+  shardshop:
+    permission: shards.shop
+  afk:
+    permission: shards.afk
+  shardmanager:
+    permission: shards.admin
+permissions:
+  shards.use: {default: true}
+  shards.balance: {default: true}
+  shards.balance.others: {default: op}
+  shards.pay: {default: true}
+  shards.top: {default: true}
+  shards.history: {default: true}
+  shards.shop: {default: true}
+  shards.afk: {default: true}
+  shards.admin:
+    default: op
+    children:
+      shards.admin.give: true
+      shards.admin.take: true
+      shards.admin.set: true
+      shards.admin.reset: true
+      shards.admin.reload: true
+      shards.admin.rollback: true
+      shards.admin.zone: true
+      shards.admin.shop: true
+      shards.admin.migrate: true
+      shards.admin.gui: true
+      shards.admin.debug: true
+  shards.admin.give: {default: op}
+  shards.admin.take: {default: op}
+  shards.admin.set: {default: op}
+  shards.admin.reset: {default: op}
+  shards.admin.reload: {default: op}
+  shards.admin.rollback: {default: op}
+  shards.admin.zone: {default: op}
+  shards.admin.shop: {default: op}
+  shards.admin.migrate: {default: op}
+  shards.admin.gui: {default: op}
+  shards.admin.debug: {default: op}
+  shards.bypass.cooldown: {default: op}
+  shards.bypass.limit: {default: op}

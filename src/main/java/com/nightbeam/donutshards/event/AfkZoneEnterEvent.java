@@ -1,0 +1,3 @@
+package com.nightbeam.donutshards.event;
+import org.bukkit.entity.Player;import org.bukkit.event.*;
+public final class AfkZoneEnterEvent extends Event implements Cancellable {private static final HandlerList HANDLERS=new HandlerList();private final Player player;private final String zone;private boolean cancelled;public AfkZoneEnterEvent(Player player,String zone){this.player=player;this.zone=zone;}public Player player(){return player;}public String zone(){return zone;}public boolean isCancelled(){return cancelled;}public void setCancelled(boolean v){cancelled=v;}public HandlerList getHandlers(){return HANDLERS;}public static HandlerList getHandlerList(){return HANDLERS;}}

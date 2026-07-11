@@ -1,0 +1,3 @@
+package com.nightbeam.donutshards.event;
+import org.bukkit.event.*;import java.util.UUID;
+public final class ShardTransferEvent extends Event implements Cancellable {private static final HandlerList HANDLERS=new HandlerList();private final UUID from,to;private final long amount;private boolean cancelled;public ShardTransferEvent(UUID from,UUID to,long amount,boolean async){super(async);this.from=from;this.to=to;this.amount=amount;}public UUID from(){return from;}public UUID to(){return to;}public long amount(){return amount;}public boolean isCancelled(){return cancelled;}public void setCancelled(boolean v){cancelled=v;}public HandlerList getHandlers(){return HANDLERS;}public static HandlerList getHandlerList(){return HANDLERS;}}

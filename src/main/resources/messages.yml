@@ -1,0 +1,12 @@
+# MiniMessage formatted user-facing text.
+schema-version: 1
+prefix: "<gradient:#ff78b8:#8f7cff><bold>DonutShards</bold></gradient> <dark_gray>»</dark_gray> "
+balance: "<gray>Balance: <light_purple><balance> shards</light_purple>"
+paid: "<green>Sent <amount> shards to <player>.</green>"
+received: "<green>Received <amount> shards from <player>.</green>"
+insufficient: "<red>You do not have enough shards.</red>"
+invalid-number: "<red>Enter a positive whole number.</red>"
+no-permission: "<red>You do not have permission.</red>"
+error: "<red>The operation could not be completed.</red>"
+reward: "<gradient:#ffd166:#ff78b8>+<amount> Shard</gradient>"
+next-reward: "<gray>Next shard in <light_purple><next_reward>s</light_purple>"

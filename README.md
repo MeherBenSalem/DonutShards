@@ -1,0 +1,18 @@
+# DonutShards
+
+DonutShards is an original donut-and-cosmic shard economy for modern Paper and Folia servers. It provides an asynchronous SQL-backed balance ledger, transfers, recurring rewards, AFK-zone foundations, an inventory shop, a public API, and configurable MiniMessage presentation.
+
+## Compatibility
+
+- Java 21 bytecode; Java 21 for Minecraft 1.20.1–1.21.x and Java 25 for Paper/Folia 26.1.2.
+- Paper and Folia 1.20.1 through 26.1.2. Minecraft 26.2 is not claimed until stable builds exist for both platforms.
+- SQLite by default; MariaDB and compatible MySQL servers are optional.
+- PlaceholderAPI and Vault are soft dependencies and never required for startup.
+
+## Install
+
+Copy the release JAR to `plugins/`, start the server once, edit files under `plugins/DonutShards/`, and restart. See [INSTALLATION.md](INSTALLATION.md), [COMMANDS.md](COMMANDS.md), and [PERMISSIONS.md](PERMISSIONS.md).
+
+Report problems with the server version, Java version, DonutShards version, platform, relevant sanitized logs, and reproduction steps. Never publish database passwords or the generated server data directory.
+
+Copyright © 2026 Nightbeam. All rights reserved.

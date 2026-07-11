@@ -1,0 +1,8 @@
+# Inventory presentation. Slots are zero-based.
+schema-version: 1
+filler: {material: GRAY_STAINED_GLASS_PANE, name: " "}
+previous: {slot: 45, material: ARROW, name: "<yellow>Previous page"}
+next: {slot: 53, material: ARROW, name: "<yellow>Next page"}
+back: {slot: 49, material: BARRIER, name: "<red>Back"}
+confirm: {slot: 11, material: LIME_CONCRETE, name: "<green>Confirm purchase"}
+cancel: {slot: 15, material: RED_CONCRETE, name: "<red>Cancel"}

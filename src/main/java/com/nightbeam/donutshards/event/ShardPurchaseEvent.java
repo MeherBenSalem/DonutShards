@@ -1,0 +1,3 @@
+package com.nightbeam.donutshards.event;
+import org.bukkit.event.*;import java.util.UUID;
+public final class ShardPurchaseEvent extends Event implements Cancellable {private static final HandlerList HANDLERS=new HandlerList();private final UUID player;private final String item;private final long price;private boolean cancelled;public ShardPurchaseEvent(UUID player,String item,long price){this.player=player;this.item=item;this.price=price;}public UUID player(){return player;}public String item(){return item;}public long price(){return price;}public boolean isCancelled(){return cancelled;}public void setCancelled(boolean v){cancelled=v;}public HandlerList getHandlers(){return HANDLERS;}public static HandlerList getHandlerList(){return HANDLERS;}}

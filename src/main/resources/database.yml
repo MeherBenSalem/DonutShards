@@ -1,0 +1,11 @@
+# SQLITE or MARIADB. MariaDB driver also supports compatible MySQL servers.
+schema-version: 1
+type: SQLITE
+sqlite-file: "donutshards.db"
+host: "127.0.0.1"
+port: 3306
+database: "donutshards"
+username: "donutshards"
+password: ""
+pool-size: 10
+connection-timeout-ms: 10000

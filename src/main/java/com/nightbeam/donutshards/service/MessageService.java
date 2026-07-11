@@ -1,0 +1,3 @@
+package com.nightbeam.donutshards.service;
+import net.kyori.adventure.text.minimessage.MiniMessage;import net.kyori.adventure.text.Component;import org.bukkit.command.CommandSender;import java.util.Map;
+public final class MessageService {private final MiniMessage mini=MiniMessage.miniMessage();public Component render(String input,Map<String,String> values){for(var e:values.entrySet())input=input.replace('<'+e.getKey()+'>',escape(e.getValue()));return mini.deserialize(input);}public void send(CommandSender target,String input,Map<String,String> values){target.sendMessage(render(input,values));}private String escape(String value){return value.replace("<","\\<").replace(">","\\>");}}
