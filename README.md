@@ -1,6 +1,6 @@
 # DonutShards
 
-DonutShards is an original donut-and-cosmic shard economy for modern Paper and Folia servers. It provides an asynchronous SQL-backed balance ledger, transfers, recurring rewards, AFK-zone foundations, an inventory shop, a public API, and configurable MiniMessage presentation.
+DonutShards is an original donut-and-cosmic shard economy for modern Paper and Folia servers. It provides an asynchronous SQL-backed balance ledger, transfers, recurring rewards, configurable AFK zones with in-game setup, an inventory shop, a public API, and configurable MiniMessage presentation.
 
 ## Compatibility
 

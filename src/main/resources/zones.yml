@@ -1,3 +1,5 @@
-# Zones are created in-game with /shardmanager zone.
+# Zones are created in-game with /shardmanager zone create <name>.
+# Each zone is a sphere around x/y/z with the given radius (blocks).
 schema-version: 1
+default-radius: 10.0
 zones: {}

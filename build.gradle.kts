@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.nightbeam"
-version = "1.0.0"
+version = "1.1.0"
 
 repositories {
     mavenCentral()
@@ -16,6 +16,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+    testCompileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+    testRuntimeOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
     implementation("com.zaxxer:HikariCP:6.3.3")
     implementation("org.xerial:sqlite-jdbc:3.50.3.0")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.4")

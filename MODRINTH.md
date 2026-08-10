@@ -11,7 +11,8 @@ DonutShards is an original donut-and-cosmic virtual currency plugin built around
 - SQLite, MariaDB, and compatible MySQL storage
 - HikariCP connection pooling and prepared SQL statements
 - Idempotent transaction records
-- Grouped recurring rewards without per-player tick tasks
+- Recurring rewards without per-player tick tasks
+- In-game AFK zone creation with `/shardmanager zone` and player `/afk` commands
 - MiniMessage presentation
 - Original inventory shop interface
 - Async-first Java API
@@ -32,8 +33,9 @@ The plugin itself targets Java 21 bytecode. Support for Minecraft 26.2 will only
 /shards balance [player]
 /shards pay <player> <amount>
 /shardshop
-/afk leave
-/shardmanager give <player> <amount>
+/afk list|join [name]|leave|info
+/shardmanager zone create|delete|list <name>
+/shardmanager reload
 /shardmanager take <player> <amount>
 /shardmanager set <player> <amount>
 ```
