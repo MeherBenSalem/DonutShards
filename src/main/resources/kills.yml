@@ -1,0 +1,12 @@
+# Kill reward settings. Values are merged without overwriting custom keys.
+schema-version: 1
+enabled: true
+player-kill:
+  enabled: true
+  shards: 5
+  cooldown-seconds: 30
+mob-kills:
+  default: 1
+  ZOMBIE: 2
+  SKELETON: 2
+  CREEPER: 3

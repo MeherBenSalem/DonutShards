@@ -21,6 +21,7 @@ permissions:
   shards.balance: {default: true}
   shards.balance.others: {default: op}
   shards.pay: {default: true}
+  shards.convert: {default: true}
   shards.top: {default: true}
   shards.history: {default: true}
   shards.shop: {default: true}

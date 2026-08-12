@@ -10,4 +10,18 @@ transfer:
 leaderboard:
   page-size: 10
   cache-seconds: 60
+conversion:
+  enabled: true
+  shards-per-dollar: 100
+  fee-basis-points: 0
+  minimum-shards: 1
+  minimum-dollars: 0.01
+rewards:
+  interval-seconds: 60
+  zone-shards: 1
+  require-zone-or-home: true
+afk:
+  home-mode:
+    enabled: true
+    shard-multiplier: 0.5
 debug: false

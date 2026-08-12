@@ -7,15 +7,17 @@ plugins {
 }
 
 group = "com.nightbeam"
-version = "1.1.0"
+version = "1.2.0"
 
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://jitpack.io")
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
     testCompileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
     testRuntimeOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
     implementation("com.zaxxer:HikariCP:6.3.3")
@@ -51,9 +53,13 @@ val release by tasks.registering(Copy::class) {
     from(listOf("README.md", "INSTALLATION.md", "COMMANDS.md", "PERMISSIONS.md", "CONFIGURATION.md", "API.md", "FOLIA_COMPATIBILITY.md", "TESTING.md", "CHANGELOG.md", "PATCH_NOTES.md", "LICENSE.md", "CURSEFORGE.md", "MODRINTH.md"))
     from("src/main/resources") { include("*.yml"); into("config-defaults") }
     doLast {
-        val jar = destinationDir.resolve("DonutShards-${project.version}-paper-folia-mc1.20.1-26.1.2.jar")
+        val jarName = "DonutShards-${project.version}-paper-folia-mc1.20.1-26.1.2.jar"
+        val jar = destinationDir.resolve(jarName)
         val hash = MessageDigest.getInstance("SHA-256").digest(jar.readBytes()).joinToString("") { "%02x".format(it) }
         destinationDir.resolve("SHA256SUMS.txt").writeText("$hash  ${jar.name}\n", Charsets.US_ASCII)
+        val releasesDir = layout.projectDirectory.dir("releases").asFile
+        releasesDir.mkdirs()
+        jar.copyTo(releasesDir.resolve(jarName), overwrite = true)
     }
 }
 
