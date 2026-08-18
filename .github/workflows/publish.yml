@@ -252,24 +252,39 @@ jobs:
             }
             if (!flat.length) throw new Error('No CurseForge game versions resolved');
 
+            const PAPER_LIKE = new Set(['paper', 'bukkit', 'spigot', 'folia', 'purpur']);
+            function findMcVersionId(flat, want) {
+              const semver = /^\d+\.\d+(?:\.\d+)?$/;
+              const exact = flat.find((v) => semver.test(String(v.name)) && v.name === want);
+              if (exact) return exact.id;
+              return findVersionId(flat, want);
+            }
+
             let uploaded = 0;
             for (const jar of jars) {
               const { loader, gv } = detect(jar);
               const want = gv || '1.20.1';
-              const mcId = findVersionId(flat, want);
+              const mcId = findMcVersionId(flat, want);
               const loaderId = LOADER_IDS[loader];
               const clientId = findVersionId(flat, 'Client');
               const serverId = findVersionId(flat, 'Server');
               if (mcId == null) {
                 throw new Error('No CurseForge game version id for ' + want + ' (' + path.basename(jar) + ')');
               }
+              const isPaperLike = PAPER_LIKE.has(loader);
               const gameVersions = [mcId];
-              if (loaderId != null) gameVersions.push(loaderId);
-              if (clientId != null) gameVersions.push(clientId);
-              if (serverId != null) gameVersions.push(serverId);
+              if (!isPaperLike) {
+                if (loaderId != null) gameVersions.push(loaderId);
+                if (clientId != null) gameVersions.push(clientId);
+                if (serverId != null) gameVersions.push(serverId);
+              }
               const gameVersionNames = [];
-              if (clientId == null) gameVersionNames.push('Client');
-              if (serverId == null) gameVersionNames.push('Server');
+              if (isPaperLike) {
+                gameVersionNames.push('Client', 'Server');
+              } else {
+                if (clientId == null) gameVersionNames.push('Client');
+                if (serverId == null) gameVersionNames.push('Server');
+              }
               const meta = {
                 changelog,
                 changelogType: 'markdown',
