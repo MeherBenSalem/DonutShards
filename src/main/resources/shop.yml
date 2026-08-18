@@ -1,4 +1,4 @@
-# Original donut-cosmic shop layout.
+# Original donut-cosmic shop layout. Reloaded with /shardmanager reload.
 schema-version: 1
 title: "<gradient:#ff78b8:#8f7cff>Cosmic Confection Exchange</gradient>"
 size: 54
@@ -13,5 +13,15 @@ categories:
         material: COOKIE
         amount: 1
         name: "<gradient:#ffd166:#ff78b8>Starlight Cookie</gradient>"
-        lore: ["<gray>A sweet souvenir from the sugar nebula.</gray>", "<gray>Price: <light_purple>25 shards</light_purple>"]
+        lore: ["<gray>A sweet souvenir from the sugar nebula.</gray>"]
         confirmation: true
+      enchanted-blade:
+        slot: 24
+        price: 250
+        material: DIAMOND_SWORD
+        amount: 1
+        name: "<light_purple>Starlight Blade</light_purple>"
+        lore: ["<gray>Shop example with enchantments.</gray>"]
+        enchantments:
+          sharpness: 5
+          unbreaking: 3

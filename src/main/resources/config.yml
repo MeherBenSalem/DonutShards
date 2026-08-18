@@ -12,8 +12,20 @@ leaderboard:
   cache-seconds: 60
 conversion:
   enabled: true
+  # shards-per-dollar (default) keeps 1.2.0 behaviour: 100 shards per $1.
+  # dollar-batch: $100 = 1 shard. Example for ticket-0017:
+  #   rate-mode: dollar-batch
+  #   dollar-batch-size: 100
+  #   require-dollar-multiples: true
+  #   fee-basis-points-money-to-shards: 1000
+  #   fee-basis-points-shards-to-money: 8000
+  rate-mode: shards-per-dollar
   shards-per-dollar: 100
+  dollar-batch-size: 100
+  require-dollar-multiples: true
   fee-basis-points: 0
+  fee-basis-points-money-to-shards: 0
+  fee-basis-points-shards-to-money: 0
   minimum-shards: 1
   minimum-dollars: 0.01
 rewards:
@@ -21,7 +33,16 @@ rewards:
   zone-shards: 1
   require-zone-or-home: true
 afk:
+  auto-rejoin-in-zone: true
   home-mode:
     enabled: true
     shard-multiplier: 0.5
+  zone-particles:
+    enabled: true
+    particle: END_ROD
+    count-per-point: 1
+    ring-points: 32
+    vertical-samples: 3
+    interval-seconds: 2
+    view-radius: 64
 debug: false

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- Fix: `messages.yml` is loaded and reloaded; user-facing strings can be customized via message keys.
+- Fix: `shop.yml` drives the shard shop (items, prices, layout); reload applies without restart.
+- Feature: Shop items support optional Bukkit enchantments in `shop.yml`.
+- Feature: Conversion `rate-mode: dollar-batch` ($100 = 1 shard), dollar-multiple validation, per-direction fees. Default servers keep 100 shards per dollar.
+- Feature: AFK zone boundary particles (configurable type, interval, view radius).
+- Tweak: AFK auto-rejoin when inside a zone after `/afk leave` (`afk.auto-rejoin-in-zone`, default true).
+- Docs: CONFIGURATION.md updated for conversion, shop, messages, and zone-particle keys.
+
 ## 1.2.0
 
 - Vault-backed shard ↔ money conversion via `/shards convert <amount> <shards|money>` (`shards.convert` permission).

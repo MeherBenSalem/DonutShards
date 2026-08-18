@@ -1,4 +1,21 @@
-# Patch Notes — 1.2.0
+# Patch Notes — 1.3.0
+
+**Messages and shop:** Edit `messages.yml` and `shop.yml` — `/shardmanager reload` now applies both. Add enchanted gear with an `enchantments` block per item (see the Starlight Blade example).
+
+**Conversion:** Default rate is unchanged (100 shards per $1). To use $100 = 1 shard with separate buy/sell fees:
+
+```yaml
+conversion:
+  rate-mode: dollar-batch
+  dollar-batch-size: 100
+  require-dollar-multiples: true
+  fee-basis-points-money-to-shards: 1000
+  fee-basis-points-shards-to-money: 8000
+```
+
+**AFK zones:** Optional particle rings show zone radius. Standing inside a zone auto-joins AFK again after `/afk leave` unless `afk.auto-rejoin-in-zone` is false.
+
+## 1.2.0
 
 Three community-requested features ship together. **Conversion:** exchange shards and server money through Vault with configurable rates and fees (`/shards convert`). **Home AFK:** earn reduced shards anywhere with `/afk home` without standing in a zone; `/afk zone` returns to full zone rewards. **Kill rewards:** PvP and mob kills grant shards from `kills.yml` (PvP cooldown, no spawner farms).
 
