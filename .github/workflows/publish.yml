@@ -264,35 +264,33 @@ jobs:
             for (const jar of jars) {
               const { loader, gv } = detect(jar);
               const want = gv || '1.20.1';
-              const mcId = findMcVersionId(flat, want);
-              const loaderId = LOADER_IDS[loader];
-              const clientId = findVersionId(flat, 'Client');
-              const serverId = findVersionId(flat, 'Server');
-              if (mcId == null) {
-                throw new Error('No CurseForge game version id for ' + want + ' (' + path.basename(jar) + ')');
-              }
               const isPaperLike = PAPER_LIKE.has(loader);
-              const gameVersions = [mcId];
-              if (!isPaperLike) {
-                if (loaderId != null) gameVersions.push(loaderId);
-                if (clientId != null) gameVersions.push(clientId);
-                if (serverId != null) gameVersions.push(serverId);
-              }
-              const gameVersionNames = [];
-              if (isPaperLike) {
-                gameVersionNames.push('Client', 'Server');
-              } else {
-                if (clientId == null) gameVersionNames.push('Client');
-                if (serverId == null) gameVersionNames.push('Server');
-              }
               const meta = {
                 changelog,
                 changelogType: 'markdown',
                 displayName: `${version} · ${loader} · ${want}`,
-                gameVersions,
                 releaseType: 'release',
               };
-              if (gameVersionNames.length) meta.gameVersionNames = gameVersionNames;
+              if (isPaperLike) {
+                meta.gameVersionNames = [want, 'Client', 'Server'];
+              } else {
+                const mcId = findMcVersionId(flat, want);
+                const loaderId = LOADER_IDS[loader];
+                const clientId = findVersionId(flat, 'Client');
+                const serverId = findVersionId(flat, 'Server');
+                if (mcId == null) {
+                  throw new Error('No CurseForge game version id for ' + want + ' (' + path.basename(jar) + ')');
+                }
+                const gameVersions = [mcId];
+                if (loaderId != null) gameVersions.push(loaderId);
+                if (clientId != null) gameVersions.push(clientId);
+                if (serverId != null) gameVersions.push(serverId);
+                meta.gameVersions = gameVersions;
+                const gameVersionNames = [];
+                if (clientId == null) gameVersionNames.push('Client');
+                if (serverId == null) gameVersionNames.push('Server');
+                if (gameVersionNames.length) meta.gameVersionNames = gameVersionNames;
+              }
               const cfForm = new FormData();
               cfForm.append('metadata', JSON.stringify(meta));
               cfForm.append('file', new Blob([fs.readFileSync(jar)]), path.basename(jar));

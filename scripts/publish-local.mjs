@@ -48,7 +48,13 @@ if (!version) {
   process.exit(1);
 }
 
-for (const k of ['MODRINTH_TOKEN', 'CURSEFORGE_TOKEN', 'CURSEFORGE_API_KEY']) {
+const doModrinth = platforms === 'both' || platforms === 'modrinth';
+const doCurse = platforms === 'both' || platforms === 'curseforge';
+
+for (const k of [
+  ...(doModrinth ? ['MODRINTH_TOKEN'] : []),
+  ...(doCurse ? ['CURSEFORGE_TOKEN', 'CURSEFORGE_API_KEY'] : []),
+]) {
   if (!process.env[k]) {
     console.error(`Missing ${k}. Set it in .env or the environment.`);
     process.exit(1);
@@ -127,8 +133,6 @@ function findMcVersionId(flat, want) {
 }
 
 const { loader, gv } = detect(jar);
-const doModrinth = platforms === 'both' || platforms === 'modrinth';
-const doCurse = platforms === 'both' || platforms === 'curseforge';
 
 console.log(`Publishing ${path.basename(jar)} (${loader}, MC ${gv}) to ${platforms}`);
 
@@ -184,28 +188,33 @@ await (async () => {
   if (!flat.length) throw new Error('No CurseForge game versions resolved');
 
   const want = gv || DEFAULT_GAME_VERSION;
-  const mcId = findMcVersionId(flat, want);
-  if (mcId == null) throw new Error(`No CurseForge game version id for ${want}`);
-
   const isPaperLike = PAPER_LIKE.has(loader);
-  const gameVersions = [mcId];
-  if (!isPaperLike) {
+
+  const meta = {
+    changelog,
+    changelogType: 'markdown',
+    displayName: `${version} · ${loader} · ${want}`,
+    releaseType: 'release',
+  };
+
+  if (isPaperLike) {
+    meta.gameVersionNames = [want, 'Client', 'Server'];
+  } else {
+    const mcId = findMcVersionId(flat, want);
+    if (mcId == null) throw new Error(`No CurseForge game version id for ${want}`);
+    const gameVersions = [mcId];
     const loaderId = LOADER_IDS[loader];
     if (loaderId != null) gameVersions.push(loaderId);
     for (const tag of ['Client', 'Server']) {
       const id = findVersionId(flat, tag);
       if (id != null) gameVersions.push(id);
     }
+    meta.gameVersions = gameVersions;
+    const gameVersionNames = [];
+    if (findVersionId(flat, 'Client') == null) gameVersionNames.push('Client');
+    if (findVersionId(flat, 'Server') == null) gameVersionNames.push('Server');
+    if (gameVersionNames.length) meta.gameVersionNames = gameVersionNames;
   }
-
-  const meta = {
-    changelog,
-    changelogType: 'markdown',
-    displayName: `${version} · ${loader} · ${want}`,
-    gameVersions,
-    releaseType: 'release',
-  };
-  if (isPaperLike) meta.gameVersionNames = ['Client', 'Server'];
 
   const cfForm = new FormData();
   cfForm.append('metadata', JSON.stringify(meta));
