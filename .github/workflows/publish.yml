@@ -162,8 +162,8 @@ jobs:
             let loader = 'paper';
             if (process.env.DEFAULT_LOADER) loader = process.env.DEFAULT_LOADER.toLowerCase();
             let gv = process.env.DEFAULT_GAME_VERSION || '1.20.1';
-            const m1 = n.match(/(?:^|-)(1\.\d+(?:\.\d+)?)(?:-|$)/);
-            if (m1) gv = m1[1];
+            const mc = n.match(/(?:^|-)mc(1\.\d+(?:\.\d+)?)(?:-|$)/);
+            if (mc) gv = mc[1];
             return { loader, gv };
           }
 
