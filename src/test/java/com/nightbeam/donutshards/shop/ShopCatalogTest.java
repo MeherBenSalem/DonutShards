@@ -47,6 +47,28 @@ class ShopCatalogTest {
     }
 
     @Test
+    void loadsConfirmationAndCommands(@TempDir Path dir) throws Exception {
+        var file = dir.resolve("shop.yml");
+        Files.writeString(file, """
+                categories:
+                  treats:
+                    items:
+                      cookie:
+                        slot: 10
+                        price: 25
+                        material: COOKIE
+                        confirmation: true
+                        commands:
+                          - "say %player% bought %item% for %price%"
+                """);
+        var catalog = new ShopCatalog();
+        catalog.load(file.toFile());
+        var cookie = catalog.byId("cookie").orElseThrow();
+        assertThat(cookie.confirmation()).isTrue();
+        assertThat(cookie.commands()).containsExactly("say %player% bought %item% for %price%");
+    }
+
+    @Test
     void skipsItemsWithoutMaterial(@TempDir Path dir) throws Exception {
         var file = dir.resolve("shop.yml");
         Files.writeString(file, """

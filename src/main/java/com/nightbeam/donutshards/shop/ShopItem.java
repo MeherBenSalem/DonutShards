@@ -12,6 +12,8 @@ public record ShopItem(
         String name,
         List<String> lore,
         Map<String, Integer> enchantments,
-        boolean purchasable
+        boolean purchasable,
+        boolean confirmation,
+        List<String> commands
 ) {
 }

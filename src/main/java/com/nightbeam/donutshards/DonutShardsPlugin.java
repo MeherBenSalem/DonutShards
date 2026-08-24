@@ -3,8 +3,10 @@ package com.nightbeam.donutshards;
 import com.nightbeam.donutshards.api.DefaultDonutShardsApi;
 import com.nightbeam.donutshards.api.DonutShardsApi;
 import com.nightbeam.donutshards.command.CommandRouter;
+import com.nightbeam.donutshards.config.YamlKeyMerger;
 import com.nightbeam.donutshards.database.DatabaseConfig;
 import com.nightbeam.donutshards.database.DatabaseManager;
+import com.nightbeam.donutshards.integration.placeholder.DonutShardsExpansion;
 import com.nightbeam.donutshards.integration.vault.VaultHook;
 import com.nightbeam.donutshards.reward.KillRewardListener;
 import com.nightbeam.donutshards.reward.KillRewardService;
@@ -13,12 +15,15 @@ import com.nightbeam.donutshards.scheduler.SchedulerFactory;
 import com.nightbeam.donutshards.scheduler.SchedulerService;
 import com.nightbeam.donutshards.service.ConversionService;
 import com.nightbeam.donutshards.service.MessageService;
+import com.nightbeam.donutshards.service.PlayerPrefsStore;
 import com.nightbeam.donutshards.shop.ShopService;
 import com.nightbeam.donutshards.transaction.TransactionRepository;
 import com.nightbeam.donutshards.transaction.TransactionService;
+import com.nightbeam.donutshards.util.ModrinthUpdateChecker;
 import com.nightbeam.donutshards.zone.ZoneListener;
 import com.nightbeam.donutshards.zone.ZoneParticleService;
 import com.nightbeam.donutshards.zone.ZoneService;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -40,6 +45,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
     private volatile KillRewardService killRewards;
     private volatile MessageService messages;
     private volatile ZoneParticleService particles;
+    private volatile PlayerPrefsStore playerPrefs;
     private final AtomicInteger tax = new AtomicInteger();
     private final AtomicBoolean homeModeEnabled = new AtomicBoolean(true);
 
@@ -53,11 +59,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
     private void bootstrap() {
         try {
             getDataFolder().mkdirs();
-            for (var file : List.of("config.yml", "database.yml", "messages.yml", "rewards.yml", "zones.yml", "shop.yml", "gui.yml", "anti-abuse.yml", "kills.yml")) {
-                if (!new File(getDataFolder(), file).exists()) {
-                    saveResource(file, false);
-                }
-            }
+            YamlKeyMerger.mergeAll(this);
             var config = loadConfig();
             applyConfig(config);
             var db = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "database.yml"));
@@ -75,6 +77,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
             var tx = new TransactionService(repository, scheduler);
             messages = new MessageService();
             messages.load(new File(getDataFolder(), "messages.yml"));
+            playerPrefs = new PlayerPrefsStore(getDataFolder(), getLogger());
             zones = new ZoneService(this, new File(getDataFolder(), "zones.yml"));
             zones.setAutoRejoinInZone(config.getBoolean("afk.auto-rejoin-in-zone", true));
             var vault = new VaultHook();
@@ -87,13 +90,14 @@ public final class DonutShardsPlugin extends JavaPlugin {
             conversion.reload(config);
             killRewards = new KillRewardService(tx, messages, new File(getDataFolder(), "kills.yml"));
             var api = new DefaultDonutShardsApi(tx, zones, tax.get());
-            shop = new ShopService(this, tx, scheduler, messages, new File(getDataFolder(), "shop.yml"));
+            shop = new ShopService(this, tx, scheduler, messages, playerPrefs,
+                    new File(getDataFolder(), "shop.yml"), new File(getDataFolder(), "gui.yml"));
             rewards = new RewardService(tx, scheduler, messages, zones);
             rewards.configure(config.getLong("rewards.interval-seconds", 60), config.getLong("rewards.zone-shards", 1),
                     config.getDouble("afk.home-mode.shard-multiplier", 0.5), config.getBoolean("rewards.require-zone-or-home", true));
             particles = new ZoneParticleService(this, scheduler, zones);
             particles.configure(config);
-            var commands = new CommandRouter(tx, scheduler, messages, zones, shop, conversion, tax, homeModeEnabled, this::reloadConfigs);
+            var commands = new CommandRouter(tx, scheduler, messages, zones, shop, conversion, playerPrefs, tax, homeModeEnabled, this::reloadConfigs);
             scheduler.global(() -> {
                 if (stopping.get()) {
                     return;
@@ -110,6 +114,11 @@ public final class DonutShardsPlugin extends JavaPlugin {
                 getServer().getPluginManager().registerEvents(new ZoneListener(zones), this);
                 getServer().getPluginManager().registerEvents(new KillRewardListener(killRewards), this);
                 getServer().getServicesManager().register(DonutShardsApi.class, api, this, ServicePriority.Normal);
+                registerPlaceholderApi(tx);
+                if (config.getBoolean("bstats", true)) {
+                    enableBstats();
+                }
+                ModrinthUpdateChecker.checkAsync(this, scheduler, config.getBoolean("update-check", true));
                 rewards.start();
                 particles.start();
                 getLogger().info("Database connected and DonutShards is ready.");
@@ -119,11 +128,31 @@ public final class DonutShardsPlugin extends JavaPlugin {
         }
     }
 
+    private void registerPlaceholderApi(TransactionService tx) {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") == null) {
+            return;
+        }
+        new DonutShardsExpansion(tx).register();
+        getLogger().info("PlaceholderAPI expansion registered (donutshard_*).");
+    }
+
+    private void enableBstats() {
+        try {
+            new org.bstats.bukkit.Metrics(this, 33616);
+        } catch (Throwable error) {
+            getLogger().warning("bStats metrics could not be enabled: " + error.getMessage());
+        }
+    }
+
     public void reloadConfigs() {
+        YamlKeyMerger.mergeAll(this);
         var config = loadConfig();
         applyConfig(config);
         if (messages != null) {
             messages.load(new File(getDataFolder(), "messages.yml"));
+        }
+        if (playerPrefs != null) {
+            playerPrefs.load();
         }
         if (conversion != null) {
             conversion.reload(config);

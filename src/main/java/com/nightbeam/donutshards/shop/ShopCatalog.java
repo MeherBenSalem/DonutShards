@@ -102,7 +102,9 @@ public final class ShopCatalog {
                 section.getString("name", id),
                 List.copyOf(lore),
                 Map.copyOf(enchantments),
-                purchasable && section.getLong("price", 0) > 0
+                purchasable && section.getLong("price", 0) > 0,
+                section.getBoolean("confirmation", false),
+                List.copyOf(section.getStringList("commands"))
         ));
     }
 }

@@ -14,7 +14,8 @@ DonutShards is an original donut-and-cosmic virtual currency plugin built around
 - Recurring rewards without per-player tick tasks
 - In-game AFK zone creation with `/shardmanager zone` and player `/afk` commands
 - MiniMessage presentation
-- Original inventory shop interface
+- Original inventory shop interface with purchase confirmations
+- PlaceholderAPI placeholders (`%donutshard_balance%`, top names and balances)
 - Async-first Java API
 - Paper and Folia scheduling implementations
 
@@ -22,16 +23,16 @@ DonutShards is an original donut-and-cosmic virtual currency plugin built around
 
 | Platform | Minecraft versions | Runtime |
 | --- | --- | --- |
-| Paper | 1.20.1–26.1.2 | Java 21 on older releases; Java 25 for 26.1.2 |
-| Folia | 1.20.1–26.1.2 | Java 21 on older releases; Java 25 for 26.1.2 |
+| Paper, Folia, Purpur, Spigot, Bukkit | 1.20.1–26.2 | Java 21 (Java 25 for 26.1.2+) |
 
-The plugin itself targets Java 21 bytecode. Support for Minecraft 26.2 will only be claimed after stable Paper and Folia builds are available and tested.
+The plugin targets Java 21 bytecode. See `release/supported-minecraft.json` for the full version list.
 
 ## Commands
 
 ```text
 /shards balance [player]
 /shards pay <player> <amount>
+/shards top
 /shardshop
 /afk list|join [name]|leave|info
 /shardmanager zone create|delete|list <name>
@@ -50,11 +51,15 @@ The plugin itself targets Java 21 bytecode. Support for Minecraft 26.2 will only
 4. Configure `database.yml` if MariaDB/MySQL is required.
 5. Restart and confirm that DonutShards reports a successful connection.
 
-There are no mandatory plugin dependencies.
+Vault and PlaceholderAPI are optional soft dependencies.
 
-## Release status
+## Version 1.4.0
 
-The current 1.0.0 build is an early functional foundation. The following planned systems are not yet complete: advanced AFK zones, durable purchase reconciliation, rollback and migration commands, leaderboards, Vault and PlaceholderAPI hooks, and the full administration editor.
+- YAML key merge on upgrade and reload
+- Shop purchase confirmations and per-item post-purchase commands
+- PlaceholderAPI expansion with balance and leaderboard placeholders
+- `/shards top` command
+- bStats metrics and Modrinth update checker (configurable)
 
 ## Reporting issues
 
@@ -62,4 +67,4 @@ Provide the DonutShards, server, Minecraft, and Java versions; sanitized logs; a
 
 ## License
 
-Copyright © 2026 Nightbeam. All rights reserved.
+Licensed under the [Apache License, Version 2.0](LICENSE).

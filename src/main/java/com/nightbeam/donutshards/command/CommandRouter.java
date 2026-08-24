@@ -5,6 +5,7 @@ import com.nightbeam.donutshards.model.TransactionType;
 import com.nightbeam.donutshards.scheduler.SchedulerService;
 import com.nightbeam.donutshards.service.ConversionService;
 import com.nightbeam.donutshards.service.MessageService;
+import com.nightbeam.donutshards.service.PlayerPrefsStore;
 import com.nightbeam.donutshards.shop.ShopService;
 import com.nightbeam.donutshards.transaction.TransactionService;
 import com.nightbeam.donutshards.zone.ZoneService;
@@ -30,19 +31,21 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
     private final ZoneService zones;
     private final ShopService shop;
     private final ConversionService conversion;
+    private final PlayerPrefsStore prefs;
     private final AtomicInteger tax;
     private final AtomicBoolean homeModeEnabled;
     private final Runnable reload;
 
     public CommandRouter(TransactionService tx, SchedulerService scheduler, MessageService messages, ZoneService zones,
-                         ShopService shop, ConversionService conversion, AtomicInteger tax, AtomicBoolean homeModeEnabled,
-                         Runnable reload) {
+                         ShopService shop, ConversionService conversion, PlayerPrefsStore prefs, AtomicInteger tax,
+                         AtomicBoolean homeModeEnabled, Runnable reload) {
         this.tx = tx;
         this.scheduler = scheduler;
         this.messages = messages;
         this.zones = zones;
         this.shop = shop;
         this.conversion = conversion;
+        this.prefs = prefs;
         this.tax = tax;
         this.homeModeEnabled = homeModeEnabled;
         this.reload = reload;
@@ -80,6 +83,41 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
                     messages.sendKey(player, "balance-error", Map.of());
                 }
             }));
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("top")) {
+            if (!player.hasPermission("shards.top")) {
+                messages.sendKey(player, "no-permission", Map.of());
+                return true;
+            }
+            tx.topBalances(10).whenComplete((entries, error) -> reply(player, () -> {
+                if (error != null || entries.isEmpty()) {
+                    messages.sendKey(player, "top-empty", Map.of());
+                    return;
+                }
+                for (int i = 0; i < entries.size(); i++) {
+                    var entry = entries.get(i);
+                    var offline = Bukkit.getOfflinePlayer(entry.player());
+                    var name = offline.getName() == null ? entry.player().toString() : offline.getName();
+                    messages.sendKey(player, "top-entry", Map.of(
+                            "rank", Integer.toString(i + 1),
+                            "player", name,
+                            "balance", Long.toString(entry.balance())
+                    ));
+                }
+            }));
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("confirmation") && args.length == 2) {
+            if (args[1].equalsIgnoreCase("on")) {
+                prefs.setShopConfirmation(player.getUniqueId(), true);
+                messages.sendKey(player, "confirmation-enabled", Map.of());
+            } else if (args[1].equalsIgnoreCase("off")) {
+                prefs.setShopConfirmation(player.getUniqueId(), false);
+                messages.sendKey(player, "confirmation-disabled", Map.of());
+            } else {
+                messages.sendKey(player, "confirmation-usage", Map.of());
+            }
             return true;
         }
         if (args[0].equalsIgnoreCase("pay") && args.length == 3) {
@@ -346,10 +384,13 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
                     ? List.of("give", "take", "set", "reset", "reload", "history", "rollback", "zone", "migrate", "debug", "version", "gui")
                     : command.getName().equals("afk")
                     ? List.of("list", "join", "leave", "home", "zone", "info")
-                    : List.of("balance", "pay", "top", "history", "convert");
+                    : List.of("balance", "pay", "top", "history", "convert", "confirmation");
         }
         if (args.length == 2 && command.getName().equals("shards") && args[0].equalsIgnoreCase("convert")) {
             return List.of("shards", "money");
+        }
+        if (args.length == 2 && command.getName().equals("shards") && args[0].equalsIgnoreCase("confirmation")) {
+            return List.of("on", "off");
         }
         if (args.length == 2 && command.getName().equals("shardmanager") && args[0].equalsIgnoreCase("zone")) {
             return List.of("create", "delete", "list");

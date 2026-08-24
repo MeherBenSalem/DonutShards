@@ -4,8 +4,8 @@ DonutShards is an original donut-and-cosmic shard economy for modern Paper and F
 
 ## Compatibility
 
-- Java 21 bytecode; Java 21 for Minecraft 1.20.1–1.21.x and Java 25 for Paper/Folia 26.1.2.
-- Paper and Folia 1.20.1 through 26.1.2. Minecraft 26.2 is not claimed until stable builds exist for both platforms.
+- Java 21 bytecode.
+- Paper, Folia, Purpur, Spigot, and Bukkit **1.20.1 through 26.2** (see `release/supported-minecraft.json`).
 - SQLite by default; MariaDB and compatible MySQL servers are optional.
 - PlaceholderAPI and Vault are soft dependencies and never required for startup.
 
@@ -15,4 +15,6 @@ Copy the release JAR to `plugins/`, start the server once, edit files under `plu
 
 Report problems with the server version, Java version, DonutShards version, platform, relevant sanitized logs, and reproduction steps. Never publish database passwords or the generated server data directory.
 
-Copyright © 2026 Nightbeam. All rights reserved.
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.

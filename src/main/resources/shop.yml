@@ -15,6 +15,8 @@ categories:
         name: "<gradient:#ffd166:#ff78b8>Starlight Cookie</gradient>"
         lore: ["<gray>A sweet souvenir from the sugar nebula.</gray>"]
         confirmation: true
+        commands:
+          - "say %player% bought a Starlight Cookie for %price% shards!"
       enchanted-blade:
         slot: 24
         price: 250

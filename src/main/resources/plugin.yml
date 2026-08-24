@@ -4,11 +4,11 @@ main: com.nightbeam.donutshards.DonutShardsPlugin
 api-version: '1.20'
 folia-supported: true
 description: A configurable shard economy, AFK reward, shop, and progression system.
-author: Nightbeam
+author: NightBeam
 softdepend: [PlaceholderAPI, Vault]
 commands:
   shards:
-    aliases: [donutshards, dshards]
+    aliases: [donutshards, dshards, shard]
     permission: shards.use
   shardshop:
     permission: shards.shop

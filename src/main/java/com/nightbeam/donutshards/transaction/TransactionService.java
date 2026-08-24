@@ -17,5 +17,6 @@ public final class TransactionService {
     public CompletionStage<TransferResult> transfer(UUID from,UUID to,long amount,int tax,MutationContext ctx){return submit(()->{var result=repository.transfer(from,to,amount,tax,ctx);if(result.success()){cache.remove(from);cache.remove(to);}return result;});}
     public CompletionStage<Optional<ShardTransaction>> transaction(UUID id){return submit(()->repository.find(id));}
     public CompletionStage<PlayerStatistics> statistics(UUID id){return submit(()->repository.statistics(id));}
+    public CompletionStage<List<LeaderboardEntry>> topBalances(int limit){return submit(()->repository.topBalances(limit));}
     public void forget(UUID id){cache.remove(id);}
 }

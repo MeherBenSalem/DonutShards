@@ -14,17 +14,20 @@ DonutShards brings an original donut-and-cosmic currency system to Minecraft ser
 - SQLite storage by default
 - Optional MariaDB and compatible MySQL storage
 - HikariCP connection pooling
-- Basic recurring shard rewards
-- Original Cosmic Confection Exchange inventory GUI
+- Recurring shard rewards and kill rewards
+- Original Cosmic Confection Exchange inventory GUI with purchase confirmations
+- PlaceholderAPI placeholders for balance and top-10 leaderboard
 - MiniMessage-formatted messages
 - Asynchronous public Java API
 - Paper and genuine Folia scheduler abstraction
 - Configurable balance maximum and transfer tax
+- Vault integration (soft dependency)
 
 ## Commands
 
 - `/shards balance [player]`
 - `/shards pay <player> <amount>`
+- `/shards top`
 - `/shardshop`
 - `/afk leave`
 - `/shardmanager give <player> <amount>`
@@ -35,12 +38,10 @@ Aliases for `/shards` are `/donutshards` and `/dshards`.
 
 ## Compatibility
 
-- **Server software:** Paper and Folia
-- **Minecraft:** 1.20.1 through 26.1.2
+- **Server software:** Paper, Folia, Purpur, Spigot, and Bukkit
+- **Minecraft:** 1.20.1 through 26.2
 - **Plugin bytecode:** Java 21
-- **Minecraft 26.1.2 runtime:** Java 25, as required by Paper/Folia
-
-Minecraft 26.2 is not currently claimed because a stable dual-platform Paper/Folia release was not available when this build was produced.
+- **Minecraft 26.1.2+ runtime:** Java 25, as required by Paper/Folia
 
 ## Installation
 
@@ -52,9 +53,13 @@ Minecraft 26.2 is not currently claimed because a stable dual-platform Paper/Fol
 
 SQLite works without additional setup. MariaDB/MySQL users should configure a dedicated, least-privilege database account in `database.yml`.
 
-## Important release status
+## Version 1.4.0
 
-Version 1.0.0 is an early functional foundation. Advanced AFK-zone management, persistent shop delivery reconciliation, transaction rollback commands, leaderboards, Vault/PlaceholderAPI hooks, migration tools, and administration editors are planned but are not complete in this build.
+- YAML key merge on upgrade and reload
+- Shop purchase confirmations and per-item post-purchase commands
+- PlaceholderAPI expansion (`%donutshard_balance%`, `%donutshard_top_*%`, `%donutshard_top_bal_*%`)
+- `/shards top` command
+- bStats metrics and Modrinth update checker (configurable in `config.yml`)
 
 ## Support and bug reports
 
@@ -70,4 +75,4 @@ Never publish database passwords, private network addresses, or the contents of 
 
 ## License
 
-Copyright © 2026 Nightbeam. All rights reserved. Redistribution, modification, or resale requires prior written authorization.
+Licensed under the [Apache License, Version 2.0](LICENSE).

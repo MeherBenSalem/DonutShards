@@ -3,12 +3,11 @@
  * Local publish for DonutShards — Modrinth + CurseForge.
  *
  * Usage:
- *   node scripts/publish-local.mjs --version 1.3.0 [--platforms both|modrinth|curseforge]
+ *   node scripts/publish-local.mjs --version 1.4.0 [--platforms both|modrinth|curseforge]
  *
  * Requires env (or repo-root .env):
  *   MODRINTH_TOKEN, CURSEFORGE_TOKEN, CURSEFORGE_API_KEY
  *   MODRINTH_ID (default 4krPhA6H), CURSEFORGE_ID (default 1606311)
- *   DEFAULT_LOADER (default paper), DEFAULT_GAME_VERSION (default 1.20.1)
  */
 import fs from 'fs';
 import path from 'path';
@@ -44,7 +43,7 @@ function arg(name, fallback) {
 const version = arg('version');
 const platforms = (arg('platforms', 'both') || 'both').toLowerCase();
 if (!version) {
-  console.error('Usage: node scripts/publish-local.mjs --version 1.3.0 [--platforms both|modrinth|curseforge]');
+  console.error('Usage: node scripts/publish-local.mjs --version 1.4.0 [--platforms both|modrinth|curseforge]');
   process.exit(1);
 }
 
@@ -63,10 +62,23 @@ for (const k of [
 
 const MODRINTH_ID = process.env.MODRINTH_ID || '4krPhA6H';
 const CURSEFORGE_ID = process.env.CURSEFORGE_ID || '1606311';
-const DEFAULT_LOADER = (process.env.DEFAULT_LOADER || 'paper').toLowerCase();
-const DEFAULT_GAME_VERSION = process.env.DEFAULT_GAME_VERSION || '1.20.1';
 
-const jarName = `DonutShards-${version}-paper-folia-mc1.20.1-26.1.2.jar`;
+const supportPath = path.join(root, 'release', 'supported-minecraft.json');
+const support = JSON.parse(fs.readFileSync(supportPath, 'utf8'));
+const gameVersions = Array.isArray(support) ? support : support.game_versions;
+const loaders = Array.isArray(support)
+  ? ['paper', 'folia', 'purpur', 'spigot', 'bukkit']
+  : support.loaders;
+if (!Array.isArray(gameVersions) || gameVersions.length === 0) {
+  console.error('release/supported-minecraft.json has no game versions');
+  process.exit(1);
+}
+if (!Array.isArray(loaders) || loaders.length === 0) {
+  console.error('release/supported-minecraft.json has no loaders');
+  process.exit(1);
+}
+
+const jarName = `DonutShards-${version}-paper-folia-mc1.20.1-26.2.jar`;
 const jarCandidates = [
   path.join(root, 'releases', jarName),
   path.join(root, 'build', 'release', jarName),
@@ -77,77 +89,55 @@ if (!jar) {
   process.exit(1);
 }
 
+function sectionForVersion(markdown, ver) {
+  const lines = markdown.split(/\r?\n/);
+  const start = lines.findIndex((line) => {
+    const t = line.trim();
+    return t === `## ${ver}` || t === `# ${ver}` || t.startsWith(`## ${ver} `) || t.startsWith(`# ${ver} `);
+  });
+  if (start < 0) return null;
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^##\s/.test(line.trim()));
+  const body = (end < 0 ? rest : rest.slice(0, end)).join('\n').trim();
+  return body || null;
+}
+
 function resolveChangelog(ver) {
-  const candidates = [
-    path.join(root, 'CHANGELOG.md'),
-    path.join(root, 'PATCH_NOTES.md'),
-    ...fs.readdirSync(root).filter(
-      (f) => f.toLowerCase().endsWith(`-${ver}-patchnotes.md`) || f.toLowerCase() === `${ver}-patchnotes.md`,
-    ).map((f) => path.join(root, f)),
-  ];
-  for (const f of candidates) {
-    if (fs.existsSync(f)) return fs.readFileSync(f, 'utf8');
+  const named = fs.readdirSync(root).filter(
+    (f) =>
+      f.toLowerCase().endsWith(`-${ver}-patchnotes.md`) ||
+      f.toLowerCase() === `${ver}-patchnotes.md`,
+  );
+  for (const f of named) {
+    const p = path.join(root, f);
+    if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8');
+  }
+  for (const f of ['CHANGELOG.md', 'PATCH_NOTES.md']) {
+    const p = path.join(root, f);
+    if (!fs.existsSync(p)) continue;
+    const full = fs.readFileSync(p, 'utf8');
+    const section = sectionForVersion(full, ver);
+    if (section) return section;
+    return full;
   }
   return `Release ${ver}`;
 }
 
 const changelog = resolveChangelog(version);
-const LOADER_IDS = { fabric: 7499, forge: 7498, neoforge: 10150, quilt: 9153 };
-const PAPER_LIKE = new Set(['paper', 'bukkit', 'spigot', 'folia', 'purpur']);
 
-function detect(jarPath) {
-  const n = path.basename(jarPath).toLowerCase();
-  let loader = DEFAULT_LOADER;
-  let gv = DEFAULT_GAME_VERSION;
-  const mc = n.match(/(?:^|-)mc(1\.\d+(?:\.\d+)?)(?:-|$)/);
-  if (mc) gv = mc[1];
-  return { loader, gv };
-}
-
-function flattenVersions(payload) {
-  const flat = [];
-  const data = payload?.data ?? payload;
-  if (!Array.isArray(data)) return flat;
-  for (const entry of data) {
-    if (Array.isArray(entry?.versions)) {
-      for (const v of entry.versions) flat.push(v);
-    } else if (entry && entry.id != null && entry.name) {
-      flat.push(entry);
-    }
-  }
-  return flat;
-}
-
-function findVersionId(flat, name) {
-  const exact = flat.find((v) => v.name === name || v.slug === name);
-  if (exact) return exact.id;
-  const loose = flat.find((v) => String(v.name).toLowerCase() === String(name).toLowerCase());
-  return loose?.id;
-}
-
-function findMcVersionId(flat, want) {
-  const semver = /^\d+\.\d+(?:\.\d+)?$/;
-  const exact = flat.find((v) => semver.test(String(v.name)) && v.name === want);
-  if (exact) return exact.id;
-  return findVersionId(flat, want);
-}
-
-const { loader, gv } = detect(jar);
-
-console.log(`Publishing ${path.basename(jar)} (${loader}, MC ${gv}) to ${platforms}`);
+console.log(`Publishing ${path.basename(jar)} (${loaders.join('+')}, ${gameVersions.length} MC versions) to ${platforms}`);
 
 await (async () => {
   if (doModrinth) {
-    const gameVersions = [gv];
     const body = {
-      name: `${version} · ${loader} · ${gameVersions[0]}`,
-      version_number: `${version}+${loader}-${gameVersions[0]}`,
+      name: version,
+      version_number: version,
       changelog,
       dependencies: [],
       game_versions: gameVersions,
       version_type: 'release',
-      loaders: [loader === 'paper' ? 'paper' : loader],
-      featured: false,
+      loaders,
+      featured: true,
       status: 'listed',
       project_id: MODRINTH_ID,
       file_parts: ['file_0'],
@@ -163,7 +153,7 @@ await (async () => {
     });
     const mrText = await mrRes.text();
     if (!mrRes.ok) throw new Error(`Modrinth ${mrRes.status} ${mrText.slice(0, 500)}`);
-    console.log('Modrinth OK', body.version_number, mrText.slice(0, 160));
+    console.log('Modrinth OK', version, loaders.join('+'), gameVersions.length, 'MC versions');
   }
 
   if (!doCurse) return;
@@ -187,34 +177,14 @@ await (async () => {
   }
   if (!flat.length) throw new Error('No CurseForge game versions resolved');
 
-  const want = gv || DEFAULT_GAME_VERSION;
-  const isPaperLike = PAPER_LIKE.has(loader);
-
+  const gameVersionNames = [...gameVersions, 'Client', 'Server'];
   const meta = {
     changelog,
     changelogType: 'markdown',
-    displayName: `${version} · ${loader} · ${want}`,
+    displayName: version,
+    gameVersionNames,
     releaseType: 'release',
   };
-
-  if (isPaperLike) {
-    meta.gameVersionNames = [want, 'Client', 'Server'];
-  } else {
-    const mcId = findMcVersionId(flat, want);
-    if (mcId == null) throw new Error(`No CurseForge game version id for ${want}`);
-    const gameVersions = [mcId];
-    const loaderId = LOADER_IDS[loader];
-    if (loaderId != null) gameVersions.push(loaderId);
-    for (const tag of ['Client', 'Server']) {
-      const id = findVersionId(flat, tag);
-      if (id != null) gameVersions.push(id);
-    }
-    meta.gameVersions = gameVersions;
-    const gameVersionNames = [];
-    if (findVersionId(flat, 'Client') == null) gameVersionNames.push('Client');
-    if (findVersionId(flat, 'Server') == null) gameVersionNames.push('Server');
-    if (gameVersionNames.length) meta.gameVersionNames = gameVersionNames;
-  }
 
   const cfForm = new FormData();
   cfForm.append('metadata', JSON.stringify(meta));
@@ -225,8 +195,22 @@ await (async () => {
   );
   const cfText = await cfRes.text();
   if (!cfRes.ok) throw new Error(`CurseForge ${cfRes.status} ${cfText.slice(0, 500)}`);
-  console.log('CurseForge OK', meta.displayName, cfText.slice(0, 160));
+  console.log('CurseForge OK', version, gameVersionNames.length, 'tags', path.basename(jar));
 })().catch((e) => {
   console.error(e);
   process.exit(1);
 });
+
+function flattenVersions(payload) {
+  const flat = [];
+  const data = payload?.data ?? payload;
+  if (!Array.isArray(data)) return flat;
+  for (const entry of data) {
+    if (Array.isArray(entry?.versions)) {
+      for (const v of entry.versions) flat.push(v);
+    } else if (entry && entry.id != null && entry.name) {
+      flat.push(entry);
+    }
+  }
+  return flat;
+}

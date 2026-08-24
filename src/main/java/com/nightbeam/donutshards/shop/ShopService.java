@@ -1,10 +1,13 @@
 package com.nightbeam.donutshards.shop;
 
+import com.nightbeam.donutshards.gui.ConfirmHolder;
+import com.nightbeam.donutshards.gui.GuiConfig;
 import com.nightbeam.donutshards.gui.ShopHolder;
 import com.nightbeam.donutshards.model.MutationContext;
 import com.nightbeam.donutshards.model.TransactionType;
 import com.nightbeam.donutshards.scheduler.SchedulerService;
 import com.nightbeam.donutshards.service.MessageService;
+import com.nightbeam.donutshards.service.PlayerPrefsStore;
 import com.nightbeam.donutshards.transaction.TransactionService;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -33,18 +36,24 @@ public final class ShopService implements Listener {
     private final TransactionService tx;
     private final SchedulerService scheduler;
     private final MessageService messages;
+    private final PlayerPrefsStore prefs;
     private final File shopFile;
+    private final File guiFile;
     private final ShopCatalog catalog = new ShopCatalog();
+    private final GuiConfig gui = new GuiConfig();
     private final Set<UUID> processing = ConcurrentHashMap.newKeySet();
     private final NamespacedKey tokenKey;
     private final NamespacedKey itemKey;
 
-    public ShopService(Plugin plugin, TransactionService tx, SchedulerService scheduler, MessageService messages, File shopFile) {
+    public ShopService(Plugin plugin, TransactionService tx, SchedulerService scheduler, MessageService messages,
+                         PlayerPrefsStore prefs, File shopFile, File guiFile) {
         this.plugin = plugin;
         this.tx = tx;
         this.scheduler = scheduler;
         this.messages = messages;
+        this.prefs = prefs;
         this.shopFile = shopFile;
+        this.guiFile = guiFile;
         this.tokenKey = new NamespacedKey(plugin, "purchase-token");
         this.itemKey = new NamespacedKey(plugin, "shop-item");
         reload();
@@ -52,6 +61,7 @@ public final class ShopService implements Listener {
 
     public void reload() {
         catalog.load(shopFile);
+        gui.load(guiFile);
     }
 
     public ShopCatalog catalog() {
@@ -76,7 +86,15 @@ public final class ShopService implements Listener {
 
     @EventHandler
     public void click(InventoryClickEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof ShopHolder) || !(event.getWhoClicked() instanceof Player player)) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        var topHolder = event.getView().getTopInventory().getHolder();
+        if (topHolder instanceof ConfirmHolder confirmHolder) {
+            handleConfirmClick(event, player, confirmHolder);
+            return;
+        }
+        if (!(topHolder instanceof ShopHolder)) {
             return;
         }
         event.setCancelled(true);
@@ -91,14 +109,60 @@ public final class ShopService implements Listener {
             processing.remove(player.getUniqueId());
             return;
         }
-        purchase(player, item.get());
+        beginPurchase(player, item.get());
     }
 
     @EventHandler
     public void drag(InventoryDragEvent event) {
-        if (event.getView().getTopInventory().getHolder() instanceof ShopHolder) {
+        var holder = event.getView().getTopInventory().getHolder();
+        if (holder instanceof ShopHolder || holder instanceof ConfirmHolder) {
             event.setCancelled(true);
         }
+    }
+
+    private void handleConfirmClick(InventoryClickEvent event, Player player, ConfirmHolder holder) {
+        event.setCancelled(true);
+        if (!processing.add(player.getUniqueId())) {
+            return;
+        }
+        var slot = event.getRawSlot();
+        if (slot == gui.confirmSlot()) {
+            purchase(player, holder.item());
+            player.closeInventory();
+            return;
+        }
+        if (slot == gui.cancelSlot()) {
+            processing.remove(player.getUniqueId());
+            player.closeInventory();
+            return;
+        }
+        processing.remove(player.getUniqueId());
+    }
+
+    private void beginPurchase(Player player, ShopItem item) {
+        if (item.confirmation() && prefs.shopConfirmationEnabled(player.getUniqueId())) {
+            processing.remove(player.getUniqueId());
+            openConfirmation(player, item);
+            return;
+        }
+        purchase(player, item);
+    }
+
+    private void openConfirmation(Player player, ShopItem item) {
+        var holder = new ConfirmHolder(UUID.randomUUID(), item);
+        var inv = Bukkit.createInventory(holder, 27, messages.render("<gray>Confirm purchase", Map.of()));
+        holder.inventory(inv);
+        inv.setItem(gui.confirmSlot(), buttonStack(gui.confirmMaterial(), gui.confirmName()));
+        inv.setItem(gui.cancelSlot(), buttonStack(gui.cancelMaterial(), gui.cancelName()));
+        player.openInventory(inv);
+    }
+
+    private ItemStack buttonStack(Material material, String name) {
+        var stack = new ItemStack(material);
+        var meta = stack.getItemMeta();
+        meta.displayName(messages.render(name, Map.of()));
+        stack.setItemMeta(meta);
+        return stack;
     }
 
     private void purchase(Player player, ShopItem item) {
@@ -120,11 +184,51 @@ public final class ShopService implements Listener {
                 if (!leftovers.isEmpty()) {
                     leftovers.values().forEach(extra -> player.getWorld().dropItemNaturally(player.getLocation(), extra));
                 }
+                runCommands(player, item);
                 messages.sendKey(player, "shop-purchase-complete", Map.of("balance", Long.toString(result.transaction().newBalance())));
             } finally {
                 processing.remove(player.getUniqueId());
             }
         }, () -> processing.remove(player.getUniqueId())));
+    }
+
+    private void runCommands(Player player, ShopItem item) {
+        if (item.commands().isEmpty()) {
+            return;
+        }
+        var safeName = sanitizePlayerName(player.getName());
+        var replacements = Map.of(
+                "player", safeName,
+                "uuid", player.getUniqueId().toString(),
+                "item", item.id().replaceAll("[^a-zA-Z0-9_-]", ""),
+                "price", Long.toString(item.price())
+        );
+        for (var command : item.commands()) {
+            if (command == null || command.isBlank()) {
+                continue;
+            }
+            var parsed = command;
+            for (var entry : replacements.entrySet()) {
+                parsed = parsed.replace("%" + entry.getKey() + "%", entry.getValue());
+            }
+            if (parsed.indexOf('\n') >= 0 || parsed.indexOf('\r') >= 0) {
+                plugin.getLogger().warning("Skipped shop command with control characters for item " + item.id());
+                continue;
+            }
+            final var toRun = parsed;
+            scheduler.global(() -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), toRun));
+        }
+    }
+
+    static String sanitizePlayerName(String name) {
+        if (name == null) {
+            return "unknown";
+        }
+        var cleaned = name.replaceAll("[^A-Za-z0-9_]", "");
+        if (cleaned.isEmpty()) {
+            return "unknown";
+        }
+        return cleaned.length() > 16 ? cleaned.substring(0, 16) : cleaned;
     }
 
     private ItemStack displayStack(ShopItem item) {

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0
+
+- Feature: `YamlKeyMerger` deep-merges missing keys from jar defaults on enable and reload without overwriting operator values.
+- Feature: Shop items support `confirmation:` and post-purchase `commands:` with `%player%`, `%uuid%`, `%item%`, `%price%` placeholders.
+- Feature: `/shards confirmation on|off` toggles shop confirm GUI (stored in `player-prefs.yml`, default on); `/shard` command alias.
+- Feature: PlaceholderAPI expansion `donutshard_*` (balance, top names, top balances).
+- Feature: `/shards top` leaderboard command.
+- Feature: bStats metrics (plugin id 33616, shaded/relocated); `bstats: true` in config.
+- Feature: Modrinth update checker for project `4krPhA6H`; `update-check: true` in config.
+- Compatibility: Paper/Folia/Purpur/Spigot/Bukkit · Minecraft 1.20.1–26.2; jar name `…-mc1.20.1-26.2.jar`.
+
 ## 1.3.0
 
 - Fix: `messages.yml` is loaded and reloaded; user-facing strings can be customized via message keys.

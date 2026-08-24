@@ -1,4 +1,14 @@
-# Patch Notes — 1.3.0
+# Patch Notes — 1.4.0
+
+**YAML merge:** On upgrade, missing keys from jar defaults are added automatically — your custom `prefix` and other edits stay intact. `/shardmanager reload` runs the same merge.
+
+**Shop:** Per-item `confirmation:` opens the confirm/cancel GUI from `gui.yml`. Per-item `commands:` run as console after purchase. `/shards confirmation on|off` toggles confirmations for your account (default on).
+
+**Placeholders:** `%donutshard_balance%`, `%donutshard_top_1`–`10`, `%donutshard_top_bal_1`–`10` when PlaceholderAPI is installed.
+
+**Ops:** `/shards top` shows the top 10 balances. bStats (id 33616) and Modrinth update checks are on by default — disable with `bstats: false` and `update-check: false` in `config.yml`.
+
+## 1.3.0
 
 **Messages and shop:** Edit `messages.yml` and `shop.yml` — `/shardmanager reload` now applies both. Add enchanted gear with an `enchantments` block per item (see the Starlight Blade example).
 

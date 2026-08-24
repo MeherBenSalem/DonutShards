@@ -46,3 +46,5 @@ afk:
     interval-seconds: 2
     view-radius: 64
 debug: false
+bstats: true
+update-check: true

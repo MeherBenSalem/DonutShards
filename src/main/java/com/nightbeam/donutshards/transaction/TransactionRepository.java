@@ -19,6 +19,19 @@ public final class TransactionRepository {
     public PlayerStatistics statistics(UUID player) throws SQLException {
         try(var c=database.connection()){ensure(c,player);try(var ps=c.prepareStatement("SELECT * FROM players WHERE uuid=?")){ps.setString(1,player.toString());try(var rs=ps.executeQuery()){rs.next();return new PlayerStatistics(player,rs.getLong("balance"),rs.getLong("total_earned"),rs.getLong("total_spent"),rs.getLong("afk_seconds"),rs.getInt("reward_streak"));}}}
     }
+    public List<LeaderboardEntry> topBalances(int limit) throws SQLException {
+        var capped = Math.max(1, Math.min(limit, 100));
+        var entries = new ArrayList<LeaderboardEntry>();
+        try (var c = database.connection(); var ps = c.prepareStatement("SELECT uuid, balance FROM players ORDER BY balance DESC LIMIT ?")) {
+            ps.setInt(1, capped);
+            try (var rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    entries.add(new LeaderboardEntry(UUID.fromString(rs.getString("uuid")), rs.getLong("balance")));
+                }
+            }
+        }
+        return entries;
+    }
     public TransactionResult mutate(UUID player, Long absolute, long delta, MutationContext context) throws SQLException {
         try { return database.transaction(c -> {
             try {
