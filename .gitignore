@@ -5,7 +5,8 @@ out/
 .idea/
 .vscode/
 run/
-release/
+release/**
+!release/supported-minecraft.json
 releases/*.jar
 *.db
 *.db-shm
