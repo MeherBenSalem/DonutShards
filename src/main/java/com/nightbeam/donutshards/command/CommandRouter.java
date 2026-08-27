@@ -198,19 +198,19 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
                     } else {
                         messages.sendKey(player, "afk-joined", Map.of("zone", zones.current(player.getUniqueId()).orElse(args[1])));
                     }
+                } else if (zones.join(player, "")) {
+                    messages.sendKey(player, "afk-joined", Map.of("zone", zones.current(player.getUniqueId()).orElse("")));
                 } else {
-                    zones.syncPlayer(player);
-                    zones.current(player.getUniqueId()).ifPresentOrElse(
-                            zone -> messages.sendKey(player, "afk-joined", Map.of("zone", zone)),
-                            () -> messages.sendKey(player, "afk-stand-to-join", Map.of()));
+                    messages.sendKey(player, "afk-stand-to-join", Map.of());
                 }
                 yield true;
             }
             case "leave" -> {
+                var wasHome = zones.isHomeMode(player.getUniqueId());
                 zones.disableHome(player.getUniqueId());
                 zones.leavePlayer(player).ifPresentOrElse(
                         zone -> messages.sendKey(player, "afk-left", Map.of("zone", zone)),
-                        () -> messages.sendKey(player, "afk-not-in-zone", Map.of()));
+                        () -> messages.sendKey(player, wasHome ? "afk-home-off" : "afk-not-in-zone", Map.of()));
                 yield true;
             }
             case "info", "status" -> {
@@ -252,12 +252,21 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
             messages.sendKey(player, "afk-zone-teleport-failed", Map.of());
             return true;
         }
-        zones.disableHome(player.getUniqueId());
-        scheduler.entity(player, () -> {
-            player.teleport(dest.get());
-            zones.syncPlayer(player);
-            messages.sendKey(player, "afk-zone-teleport", Map.of("zone", zone.name()));
-        }, () -> {
+        var target = dest.get();
+        var zoneName = zone.name();
+        // Folia-safe: teleportAsync, then run sync/messages on the destination entity thread.
+        player.teleportAsync(target).whenComplete((success, error) -> {
+            if (error != null || !Boolean.TRUE.equals(success)) {
+                scheduler.entity(player, () -> messages.sendKey(player, "afk-zone-teleport-failed", Map.of()), () -> {
+                });
+                return;
+            }
+            scheduler.entity(player, () -> {
+                zones.disableHome(player.getUniqueId());
+                zones.syncPlayer(player);
+                messages.sendKey(player, "afk-zone-teleport", Map.of("zone", zoneName));
+            }, () -> {
+            });
         });
         return true;
     }
@@ -383,8 +392,8 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
             return command.getName().equals("shardmanager")
                     ? List.of("give", "take", "set", "reload", "zone")
                     : command.getName().equals("afk")
-                    ? List.of("list", "join", "leave", "home", "zone", "info")
-                    : List.of("balance", "pay", "top", "history", "convert", "confirmation");
+                    ? List.of("list", "join", "leave", "home", "zone", "info", "status")
+                    : List.of("balance", "pay", "top", "convert", "confirmation");
         }
         if (args.length == 2 && command.getName().equals("shards") && args[0].equalsIgnoreCase("convert")) {
             return List.of("shards", "money");

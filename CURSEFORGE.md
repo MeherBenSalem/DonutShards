@@ -27,14 +27,15 @@ DonutShards brings an original donut-and-cosmic currency system to Minecraft ser
 
 - `/shards balance [player]`
 - `/shards pay <player> <amount>`
-- `/shards top`
+- `/shards top [chat]`
+- `/shards convert <shards|money> <amount>`
 - `/shardshop`
-- `/afk leave`
+- `/afk` / `/afk home` / `/afk zone` / `/afk leave`
 - `/shardmanager give <player> <amount>`
 - `/shardmanager take <player> <amount>`
 - `/shardmanager set <player> <amount>`
 
-Aliases for `/shards` are `/donutshards` and `/dshards`.
+`/shard` aliases `/shards`. `/donutshards` and `/dshards` alias `/shardmanager`.
 
 ## Compatibility
 
@@ -53,13 +54,10 @@ Aliases for `/shards` are `/donutshards` and `/dshards`.
 
 SQLite works without additional setup. MariaDB/MySQL users should configure a dedicated, least-privilege database account in `database.yml`.
 
-## Version 1.4.0
+## Version 1.5.1
 
-- YAML key merge on upgrade and reload
-- Shop purchase confirmations and per-item post-purchase commands
-- PlaceholderAPI expansion (`%donutshard_balance%`, `%donutshard_top_*%`, `%donutshard_top_bal_*%`)
-- `/shards top` command
-- bStats metrics and Modrinth update checker (configurable in `config.yml`)
+- Folia-safe `/afk zone` teleport (`teleportAsync`)
+- Home AFK cancel-on-move, AFK enter/leave messages, GUI leaderboard, convert currency-first (see 1.5.0)
 
 ## Support and bug reports
 

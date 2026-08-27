@@ -22,6 +22,9 @@ public final class LeaderboardGui implements Listener {
     private static final int SIZE = 54;
     private static final int PREV_SLOT = 45;
     private static final int NEXT_SLOT = 53;
+    /** Slots 0–44 for entries; 45/53 reserved for prev/next. */
+    private static final int MAX_PAGE_SIZE = 45;
+    private static final int SQL_CAP = 100;
 
     private final TransactionService tx;
     private final SchedulerService scheduler;
@@ -35,29 +38,34 @@ public final class LeaderboardGui implements Listener {
         this.pageSize = pageSize;
     }
 
+    private int pageSize() {
+        return Math.min(MAX_PAGE_SIZE, Math.max(1, pageSize.get()));
+    }
+
     public void open(Player player) {
         open(player, 0);
     }
 
     public void open(Player player, int page) {
         var safePage = Math.max(0, page);
-        var size = Math.max(1, pageSize.get());
-        var limit = size * (safePage + 1);
-        tx.topBalances(limit).whenComplete((entries, error) -> scheduler.entity(player, () -> {
+        var size = pageSize();
+        var from = safePage * size;
+        // Fetch one extra row past this page to detect whether Next should show (within SQL_CAP).
+        var request = Math.min(SQL_CAP, from + size + 1);
+        tx.topBalances(request).whenComplete((entries, error) -> scheduler.entity(player, () -> {
             if (error != null || entries == null || entries.isEmpty()) {
                 messages.sendKey(player, "top-empty", Map.of());
+                return;
+            }
+            if (from >= entries.size()) {
+                open(player, Math.max(0, safePage - 1));
                 return;
             }
             var holder = new LeaderboardHolder(player.getUniqueId(), safePage);
             var title = messages.renderKey("top-gui-title", Map.of("page", Integer.toString(safePage + 1)));
             var inv = Bukkit.createInventory(holder, SIZE, title);
             holder.inventory(inv);
-            var from = safePage * size;
             var to = Math.min(entries.size(), from + size);
-            if (from >= entries.size()) {
-                open(player, Math.max(0, safePage - 1));
-                return;
-            }
             var slice = entries.subList(from, to);
             for (int i = 0; i < slice.size(); i++) {
                 inv.setItem(i, entryStack(slice.get(i), from + i + 1));
@@ -65,11 +73,8 @@ public final class LeaderboardGui implements Listener {
             if (safePage > 0) {
                 inv.setItem(PREV_SLOT, navStack(Material.ARROW, "<yellow>Previous page"));
             }
-            if (to < entries.size() || entries.size() >= limit) {
-                // Fetch one extra page worth to detect more; if we filled the request, allow next.
-                if (entries.size() >= limit) {
-                    inv.setItem(NEXT_SLOT, navStack(Material.ARROW, "<yellow>Next page"));
-                }
+            if (to < entries.size() && to < SQL_CAP) {
+                inv.setItem(NEXT_SLOT, navStack(Material.ARROW, "<yellow>Next page"));
             }
             player.openInventory(inv);
         }, () -> {
@@ -77,8 +82,8 @@ public final class LeaderboardGui implements Listener {
     }
 
     public void sendChat(Player player) {
-        var size = Math.max(1, pageSize.get());
-        tx.topBalances(size).whenComplete((entries, error) -> scheduler.entity(player, () -> {
+        var size = pageSize();
+        tx.topBalances(Math.min(SQL_CAP, size)).whenComplete((entries, error) -> scheduler.entity(player, () -> {
             if (error != null || entries == null || entries.isEmpty()) {
                 messages.sendKey(player, "top-empty", Map.of());
                 return;

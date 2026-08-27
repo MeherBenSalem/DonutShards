@@ -34,5 +34,9 @@ If the per-direction fee keys are omitted, `fee-basis-points` applies to both di
 ## AFK
 
 * `afk.auto-rejoin-in-zone` (default true): after `/afk leave`, walking or syncing while still inside the zone starts AFK again.
+* `afk.zone-teleport.preferred-zone` (default empty): named zone for `/afk zone`; empty = closest zone center to the player.
 * `afk.zone-particles`: Folia-safe ring at the zone radius. Disable with `enabled: false`.
 
+## Leaderboard
+
+* `leaderboard.page-size` (default 10, max 45 for the GUI): rows per `/shards top` GUI page and `/shards top chat` list.

@@ -192,7 +192,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
 
     private void applyConfig(YamlConfiguration config) {
         tax.set(Math.max(0, Math.min(10000, config.getInt("transfer.tax-basis-points", 0))));
-        leaderboardPageSize.set(Math.max(1, config.getInt("leaderboard.page-size", 10)));
+        leaderboardPageSize.set(Math.min(45, Math.max(1, config.getInt("leaderboard.page-size", 10))));
         homeModeEnabled.set(config.getBoolean("afk.home-mode.enabled", true));
     }
 

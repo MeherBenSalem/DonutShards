@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.1
+
+- Fix: `/afk zone` uses `teleportAsync` and runs sync/messages on the destination entity thread (Folia-safe).
+- Fix: bare `/afk join` no longer double-sends zone-enter + joined messages.
+- Fix: leaderboard GUI page-size capped at 45; Next paging no longer phantom-bounces at the SQL top-100 cap.
+- Docs: COMMANDS / CONFIGURATION / patch notes aligned with 1.5.0 command changes.
+
+## 1.5.0
+
+- Fix: Home AFK cancels on block-coordinate move, then zone presence syncs.
+- Feature: AFK zone enter/leave chat; bare `/afk` = home; reward titles; `/afk zone` teleport; GUI `/shards top`; convert currency-first; admin tab cleanup; `/dshards`/`donutshards` → `/shardmanager`.
+
 ## 1.4.0
 
 - Feature: `YamlKeyMerger` deep-merges missing keys from jar defaults on enable and reload without overwriting operator values.

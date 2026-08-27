@@ -32,16 +32,16 @@ The plugin targets Java 21 bytecode. See `release/supported-minecraft.json` for 
 ```text
 /shards balance [player]
 /shards pay <player> <amount>
-/shards top
+/shards top [chat]
+/shards convert <shards|money> <amount>
 /shardshop
-/afk list|join [name]|leave|info
+/afk | home | list | join [name] | leave | zone | info
+/shardmanager give|take|set <player> <amount>
 /shardmanager zone create|delete|list <name>
 /shardmanager reload
-/shardmanager take <player> <amount>
-/shardmanager set <player> <amount>
 ```
 
-`/donutshards` and `/dshards` are aliases for `/shards`.
+`/shard` aliases `/shards`. `/donutshards` and `/dshards` alias `/shardmanager`.
 
 ## Setup
 
@@ -53,13 +53,10 @@ The plugin targets Java 21 bytecode. See `release/supported-minecraft.json` for 
 
 Vault and PlaceholderAPI are optional soft dependencies.
 
-## Version 1.4.0
+## Version 1.5.1
 
-- YAML key merge on upgrade and reload
-- Shop purchase confirmations and per-item post-purchase commands
-- PlaceholderAPI expansion with balance and leaderboard placeholders
-- `/shards top` command
-- bStats metrics and Modrinth update checker (configurable)
+- Folia-safe `/afk zone` teleport (`teleportAsync`)
+- Home AFK cancel-on-move, AFK enter/leave messages, GUI leaderboard, convert currency-first (see 1.5.0)
 
 ## Reporting issues
 
