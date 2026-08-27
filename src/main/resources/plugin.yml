@@ -8,13 +8,14 @@ author: NightBeam
 softdepend: [PlaceholderAPI, Vault]
 commands:
   shards:
-    aliases: [donutshards, dshards, shard]
+    aliases: [shard]
     permission: shards.use
   shardshop:
     permission: shards.shop
   afk:
     permission: shards.afk
   shardmanager:
+    aliases: [donutshards, dshards]
     permission: shards.admin
 permissions:
   shards.use: {default: true}

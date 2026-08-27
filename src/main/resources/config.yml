@@ -37,6 +37,9 @@ afk:
   home-mode:
     enabled: true
     shard-multiplier: 0.5
+  zone-teleport:
+    # Empty = closest AFK zone center. Set a zone name to always teleport there.
+    preferred-zone: ""
   zone-particles:
     enabled: true
     particle: END_ROD

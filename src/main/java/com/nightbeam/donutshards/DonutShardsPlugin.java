@@ -6,6 +6,7 @@ import com.nightbeam.donutshards.command.CommandRouter;
 import com.nightbeam.donutshards.config.YamlKeyMerger;
 import com.nightbeam.donutshards.database.DatabaseConfig;
 import com.nightbeam.donutshards.database.DatabaseManager;
+import com.nightbeam.donutshards.gui.LeaderboardGui;
 import com.nightbeam.donutshards.integration.placeholder.DonutShardsExpansion;
 import com.nightbeam.donutshards.integration.vault.VaultHook;
 import com.nightbeam.donutshards.reward.KillRewardListener;
@@ -47,6 +48,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
     private volatile ZoneParticleService particles;
     private volatile PlayerPrefsStore playerPrefs;
     private final AtomicInteger tax = new AtomicInteger();
+    private final AtomicInteger leaderboardPageSize = new AtomicInteger(10);
     private final AtomicBoolean homeModeEnabled = new AtomicBoolean(true);
 
     @Override
@@ -80,6 +82,8 @@ public final class DonutShardsPlugin extends JavaPlugin {
             playerPrefs = new PlayerPrefsStore(getDataFolder(), getLogger());
             zones = new ZoneService(this, new File(getDataFolder(), "zones.yml"));
             zones.setAutoRejoinInZone(config.getBoolean("afk.auto-rejoin-in-zone", true));
+            zones.setPreferredTeleportZone(config.getString("afk.zone-teleport.preferred-zone", ""));
+            zones.setAnnouncer(messages, scheduler);
             var vault = new VaultHook();
             if (vault.hook()) {
                 getLogger().info("Vault economy hook enabled.");
@@ -97,7 +101,9 @@ public final class DonutShardsPlugin extends JavaPlugin {
                     config.getDouble("afk.home-mode.shard-multiplier", 0.5), config.getBoolean("rewards.require-zone-or-home", true));
             particles = new ZoneParticleService(this, scheduler, zones);
             particles.configure(config);
-            var commands = new CommandRouter(tx, scheduler, messages, zones, shop, conversion, playerPrefs, tax, homeModeEnabled, this::reloadConfigs);
+            var leaderboard = new LeaderboardGui(tx, scheduler, messages, leaderboardPageSize);
+            var commands = new CommandRouter(tx, scheduler, messages, zones, shop, conversion, playerPrefs, leaderboard,
+                    tax, homeModeEnabled, this::reloadConfigs);
             scheduler.global(() -> {
                 if (stopping.get()) {
                     return;
@@ -111,7 +117,8 @@ public final class DonutShardsPlugin extends JavaPlugin {
                 }
                 getServer().getPluginManager().registerEvents(shop, this);
                 getServer().getPluginManager().registerEvents(rewards, this);
-                getServer().getPluginManager().registerEvents(new ZoneListener(zones), this);
+                getServer().getPluginManager().registerEvents(leaderboard, this);
+                getServer().getPluginManager().registerEvents(new ZoneListener(zones, messages, scheduler), this);
                 getServer().getPluginManager().registerEvents(new KillRewardListener(killRewards), this);
                 getServer().getServicesManager().register(DonutShardsApi.class, api, this, ServicePriority.Normal);
                 registerPlaceholderApi(tx);
@@ -163,6 +170,10 @@ public final class DonutShardsPlugin extends JavaPlugin {
         if (zones != null) {
             zones.reload();
             zones.setAutoRejoinInZone(config.getBoolean("afk.auto-rejoin-in-zone", true));
+            zones.setPreferredTeleportZone(config.getString("afk.zone-teleport.preferred-zone", ""));
+            if (messages != null && scheduler != null) {
+                zones.setAnnouncer(messages, scheduler);
+            }
         }
         if (shop != null) {
             shop.reload();
@@ -181,6 +192,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
 
     private void applyConfig(YamlConfiguration config) {
         tax.set(Math.max(0, Math.min(10000, config.getInt("transfer.tax-basis-points", 0))));
+        leaderboardPageSize.set(Math.max(1, config.getInt("leaderboard.page-size", 10)));
         homeModeEnabled.set(config.getBoolean("afk.home-mode.enabled", true));
     }
 

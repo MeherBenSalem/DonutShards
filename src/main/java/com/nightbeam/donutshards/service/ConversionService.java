@@ -38,14 +38,18 @@ public final class ConversionService {
         return rates;
     }
 
-    public CompletionStage<ConversionResult> convert(Player player, String amountText, String direction) {
+    /**
+     * Convert using {@code /shards convert <currency> <amount>} order.
+     * {@code currency} is the target: {@code money} spends shards, {@code shards} spends money.
+     */
+    public CompletionStage<ConversionResult> convert(Player player, String currency, String amountText) {
         if (!enabled()) {
             return CompletableFuture.completedFuture(ConversionResult.failure("conversion_disabled"));
         }
         if (!player.hasPermission("shards.convert")) {
             return CompletableFuture.completedFuture(ConversionResult.failure("no_permission"));
         }
-        var dir = direction == null ? "" : direction.toLowerCase(Locale.ROOT);
+        var dir = currency == null ? "" : currency.toLowerCase(Locale.ROOT);
         if (dir.equals("shards") || dir.equals("money")) {
             return doConvert(player, amountText, dir);
         }

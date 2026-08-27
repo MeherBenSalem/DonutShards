@@ -1,5 +1,6 @@
 package com.nightbeam.donutshards.command;
 
+import com.nightbeam.donutshards.gui.LeaderboardGui;
 import com.nightbeam.donutshards.model.MutationContext;
 import com.nightbeam.donutshards.model.TransactionType;
 import com.nightbeam.donutshards.scheduler.SchedulerService;
@@ -32,13 +33,14 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
     private final ShopService shop;
     private final ConversionService conversion;
     private final PlayerPrefsStore prefs;
+    private final LeaderboardGui leaderboard;
     private final AtomicInteger tax;
     private final AtomicBoolean homeModeEnabled;
     private final Runnable reload;
 
     public CommandRouter(TransactionService tx, SchedulerService scheduler, MessageService messages, ZoneService zones,
-                         ShopService shop, ConversionService conversion, PlayerPrefsStore prefs, AtomicInteger tax,
-                         AtomicBoolean homeModeEnabled, Runnable reload) {
+                         ShopService shop, ConversionService conversion, PlayerPrefsStore prefs, LeaderboardGui leaderboard,
+                         AtomicInteger tax, AtomicBoolean homeModeEnabled, Runnable reload) {
         this.tx = tx;
         this.scheduler = scheduler;
         this.messages = messages;
@@ -46,6 +48,7 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
         this.shop = shop;
         this.conversion = conversion;
         this.prefs = prefs;
+        this.leaderboard = leaderboard;
         this.tax = tax;
         this.homeModeEnabled = homeModeEnabled;
         this.reload = reload;
@@ -90,22 +93,11 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
                 messages.sendKey(player, "no-permission", Map.of());
                 return true;
             }
-            tx.topBalances(10).whenComplete((entries, error) -> reply(player, () -> {
-                if (error != null || entries.isEmpty()) {
-                    messages.sendKey(player, "top-empty", Map.of());
-                    return;
-                }
-                for (int i = 0; i < entries.size(); i++) {
-                    var entry = entries.get(i);
-                    var offline = Bukkit.getOfflinePlayer(entry.player());
-                    var name = offline.getName() == null ? entry.player().toString() : offline.getName();
-                    messages.sendKey(player, "top-entry", Map.of(
-                            "rank", Integer.toString(i + 1),
-                            "player", name,
-                            "balance", Long.toString(entry.balance())
-                    ));
-                }
-            }));
+            if (args.length >= 2 && args[1].equalsIgnoreCase("chat")) {
+                leaderboard.sendChat(player);
+            } else {
+                leaderboard.open(player);
+            }
             return true;
         }
         if (args[0].equalsIgnoreCase("confirmation") && args.length == 2) {
@@ -148,6 +140,7 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
                 messages.sendKey(player, "convert-unavailable", Map.of());
                 return true;
             }
+            // /shards convert <currency> <amount>
             conversion.convert(player, args[1], args[2]).whenComplete((result, error) -> reply(player, () -> {
                 if (error != null || !result.success()) {
                     messages.sendKey(player, "convert-failed", Map.of("reason", error == null ? result.reason() : "storage_error"));
@@ -180,36 +173,11 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length == 0) {
-            zones.syncPlayer(player);
-            if (zones.isHomeMode(player.getUniqueId())) {
-                messages.sendKey(player, "afk-home-active", Map.of());
-            } else if (zones.current(player.getUniqueId()).isPresent()) {
-                messages.sendKey(player, "afk-in-zone", Map.of("zone", zones.current(player.getUniqueId()).get()));
-            } else {
-                messages.sendKey(player, "afk-stand-hint", Map.of());
-            }
-            return true;
+            return enableHome(player);
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "home" -> {
-                if (!homeModeEnabled.get()) {
-                    messages.sendKey(player, "afk-home-disabled", Map.of());
-                    yield true;
-                }
-                zones.enableHome(player);
-                messages.sendKey(player, "afk-home-enabled", Map.of());
-                yield true;
-            }
-            case "zone" -> {
-                zones.disableHome(player.getUniqueId());
-                zones.syncPlayer(player);
-                if (zones.current(player.getUniqueId()).isPresent()) {
-                    messages.sendKey(player, "afk-rejoined-zone", Map.of("zone", zones.current(player.getUniqueId()).get()));
-                } else {
-                    messages.sendKey(player, "afk-home-off", Map.of());
-                }
-                yield true;
-            }
+            case "home" -> enableHome(player);
+            case "zone" -> teleportToZone(player);
             case "list" -> {
                 if (!zones.hasZones()) {
                     messages.sendKey(player, "afk-none-configured", Map.of());
@@ -245,7 +213,7 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
                         () -> messages.sendKey(player, "afk-not-in-zone", Map.of()));
                 yield true;
             }
-            case "info" -> {
+            case "info", "status" -> {
                 if (zones.isHomeMode(player.getUniqueId())) {
                     messages.sendKey(player, "afk-mode-home", Map.of());
                 } else {
@@ -260,6 +228,38 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
                 yield true;
             }
         };
+    }
+
+    private boolean enableHome(Player player) {
+        if (!homeModeEnabled.get()) {
+            messages.sendKey(player, "afk-home-disabled", Map.of());
+            return true;
+        }
+        zones.enableHome(player);
+        messages.sendKey(player, "afk-home-enabled", Map.of());
+        return true;
+    }
+
+    private boolean teleportToZone(Player player) {
+        var match = zones.resolveTeleportZone(player.getLocation());
+        if (match.isEmpty()) {
+            messages.sendKey(player, "afk-zone-teleport-failed", Map.of());
+            return true;
+        }
+        var zone = match.get();
+        var dest = zones.teleportLocation(zone);
+        if (dest.isEmpty()) {
+            messages.sendKey(player, "afk-zone-teleport-failed", Map.of());
+            return true;
+        }
+        zones.disableHome(player.getUniqueId());
+        scheduler.entity(player, () -> {
+            player.teleport(dest.get());
+            zones.syncPlayer(player);
+            messages.sendKey(player, "afk-zone-teleport", Map.of("zone", zone.name()));
+        }, () -> {
+        });
+        return true;
     }
 
     private boolean admin(CommandSender sender, String[] args) {
@@ -381,13 +381,16 @@ public final class CommandRouter implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 1) {
             return command.getName().equals("shardmanager")
-                    ? List.of("give", "take", "set", "reset", "reload", "history", "rollback", "zone", "migrate", "debug", "version", "gui")
+                    ? List.of("give", "take", "set", "reload", "zone")
                     : command.getName().equals("afk")
                     ? List.of("list", "join", "leave", "home", "zone", "info")
                     : List.of("balance", "pay", "top", "history", "convert", "confirmation");
         }
         if (args.length == 2 && command.getName().equals("shards") && args[0].equalsIgnoreCase("convert")) {
             return List.of("shards", "money");
+        }
+        if (args.length == 2 && command.getName().equals("shards") && args[0].equalsIgnoreCase("top")) {
+            return List.of("chat");
         }
         if (args.length == 2 && command.getName().equals("shards") && args[0].equalsIgnoreCase("confirmation")) {
             return List.of("on", "off");
