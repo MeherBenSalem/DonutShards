@@ -4,7 +4,7 @@
 
 - Compatibility: Minecraft 26.3 (Paper API `26.3.build.49-alpha`; boot-tested on Paper 26.3 ALPHA build 133). Folia has no 26.3 build; Folia 26.2 remains supported.
 - Compile: JDK 25 is required to compile against the 26.3 API; plugin bytecode stays Java 21.
-- Fix: resolve sounds, particles, enchantments, and kill-reward entity types through Bukkit registries with `valueOf`/constant fallbacks (Sound.valueOf is deprecated-for-removal on 26.3).
+- Fix: resolve sounds, particles, enchantments, and kill-reward entity types through Bukkit registries with `valueOf`/constant fallbacks (Sound.valueOf is deprecated-for-removal on 26.3). Particle lookup does not assume `Keyed`, which 1.20.1 Particle does not implement.
 - Publish: GitHub workflow builds with Java 25 and tags Modrinth/CurseForge with the full supported game-version and loader lists from `release/supported-minecraft.json`.
 
 ## 1.5.1

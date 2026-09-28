@@ -10,7 +10,7 @@ Adds Minecraft 26.3 support while keeping the 1.20.1–26.2 matrix, Java 21 byte
 
 - Compile against Paper API `26.3.build.49-alpha` using JDK 25; emit Java 21 bytecode
 - Boot-tested on Paper 26.3 ALPHA build 133
-- Registry lookups for sounds, AFK zone particles, shop enchantments, and kill-reward entity types, with `valueOf`/constant fallbacks for older servers
+- Registry lookups for sounds, AFK zone particles, shop enchantments, and kill-reward entity types, with `valueOf`/constant fallbacks for older servers (Particle is not treated as `Keyed`, which 1.20.1 does not implement)
 - Publish workflow uses Java 25 and uploads with the full supported game-version list (including 26.3) and Paper-family loaders
 
 ## Upgrade notes
