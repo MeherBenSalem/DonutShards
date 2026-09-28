@@ -1,4 +1,5 @@
 import java.security.MessageDigest
+import org.gradle.api.attributes.java.TargetJvmVersion
 
 plugins {
     java
@@ -7,7 +8,9 @@ plugins {
 }
 
 group = "com.nightbeam"
-version = "1.5.1"
+version = "1.5.2"
+
+val paperApi = "io.papermc.paper:paper-api:26.3.build.49-alpha"
 
 repositories {
     mavenCentral()
@@ -17,23 +20,38 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
-    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
+    compileOnly(paperApi)
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
+        exclude(group = "org.bukkit", module = "bukkit")
+        exclude(group = "org.bukkit", module = "craftbukkit")
+    }
     compileOnly("me.clip:placeholderapi:2.11.6")
     implementation("com.zaxxer:HikariCP:6.3.3")
     implementation("org.xerial:sqlite-jdbc:3.50.3.0")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.5.4")
     implementation("org.spongepowered:configurate-yaml:4.2.0")
     implementation("org.bstats:bstats-bukkit:3.1.0")
-    testCompileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
-    testRuntimeOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+    testCompileOnly(paperApi)
+    testRuntimeOnly(paperApi)
     testImplementation(platform("org.junit:junit-bom:5.13.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.assertj:assertj-core:3.27.3")
 }
 
-java { toolchain.languageVersion.set(JavaLanguageVersion.of(21)); withSourcesJar() }
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(25))
+    withSourcesJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(21)
+    options.encoding = "UTF-8"
+}
+
+configurations.matching { it.isCanBeResolved }.configureEach {
+    attributes.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
+}
 tasks.processResources {
     filesMatching("plugin.yml") { expand("version" to project.version) }
 }
@@ -50,7 +68,7 @@ tasks.shadowJar {
     isReproducibleFileOrder = true
 }
 
-val releaseJarName = "DonutShards-${project.version}-paper-folia-mc1.20.1-26.2.jar"
+val releaseJarName = "DonutShards-${project.version}-paper-folia-mc1.20.1-26.3.jar"
 
 val release by tasks.registering(Copy::class) {
     dependsOn(tasks.shadowJar, tasks.test)

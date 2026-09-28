@@ -3,8 +3,8 @@
 # Repo variables (set in GitHub repo settings):
 #   MODRINTH_ID
 #   CURSEFORGE_ID
-#   DEFAULT_LOADER=paper
-#   DEFAULT_GAME_VERSION=1.20.1
+#   DEFAULT_LOADER=paper (fallback when the jar is not a Paper-family plugin)
+#   DEFAULT_GAME_VERSION=1.20.1 (fallback only if release/supported-minecraft.json is missing)
 #
 # Org/repo secrets:
 #   MODRINTH_TOKEN
@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
-          JAR_NAME="DonutShards-${VERSION}-paper-folia-mc1.20.1-26.1.2.jar"
+          JAR_NAME="DonutShards-${VERSION}-paper-folia-mc1.20.1-26.3.jar"
           mapfile -t JARS < <(find releases build/release -maxdepth 1 -type f -name "$JAR_NAME" 2>/dev/null | sort -u)
           if [ ${#JARS[@]} -gt 0 ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
@@ -79,7 +79,7 @@ jobs:
         if: steps.prebuilt.outputs.found != 'true'
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "25"
 
       - uses: gradle/actions/setup-gradle@v4
         if: steps.prebuilt.outputs.found != 'true'
@@ -96,7 +96,7 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
-          JAR_NAME="DonutShards-${VERSION}-paper-folia-mc1.20.1-26.1.2.jar"
+          JAR_NAME="DonutShards-${VERSION}-paper-folia-mc1.20.1-26.3.jar"
           mapfile -t JARS < <(find releases build/release -maxdepth 1 -type f -name "$JAR_NAME" 2>/dev/null | sort -u)
           if [ ${#JARS[@]} -eq 0 ]; then
             echo "No jar found: $JAR_NAME" >&2
@@ -156,15 +156,43 @@ jobs:
           const changelog = resolveChangelog(version);
 
           const LOADER_IDS = { fabric: 7499, forge: 7498, neoforge: 10150, quilt: 9153 };
+          const PAPER_LIKE = new Set(['paper', 'bukkit', 'spigot', 'folia', 'purpur']);
+
+          function loadSupportedMetadata() {
+            const p = path.join('release', 'supported-minecraft.json');
+            if (!fs.existsSync(p)) {
+              return {
+                loaders: ['paper', 'folia', 'purpur', 'spigot', 'bukkit'],
+                game_versions: [process.env.DEFAULT_GAME_VERSION || '1.20.1', '26.3'],
+              };
+            }
+            const parsed = JSON.parse(fs.readFileSync(p, 'utf8'));
+            const loaders = Array.isArray(parsed.loaders) && parsed.loaders.length
+              ? parsed.loaders.map((s) => String(s).toLowerCase())
+              : ['paper', 'folia', 'purpur', 'spigot', 'bukkit'];
+            const gameVersions = Array.isArray(parsed.game_versions) && parsed.game_versions.length
+              ? parsed.game_versions.map(String)
+              : [process.env.DEFAULT_GAME_VERSION || '1.20.1', '26.3'];
+            return { loaders, game_versions: gameVersions };
+          }
+          const supported = loadSupportedMetadata();
 
           function detect(jar) {
             const n = path.basename(jar).toLowerCase();
-            let loader = 'paper';
-            if (process.env.DEFAULT_LOADER) loader = process.env.DEFAULT_LOADER.toLowerCase();
-            let gv = process.env.DEFAULT_GAME_VERSION || '1.20.1';
-            const mc = n.match(/(?:^|-)mc(1\.\d+(?:\.\d+)?)(?:-|$)/);
-            if (mc) gv = mc[1];
-            return { loader, gv };
+            let loader = (process.env.DEFAULT_LOADER || 'paper').toLowerCase();
+            for (const name of ['folia', 'purpur', 'paper', 'spigot', 'bukkit', 'fabric', 'forge', 'neoforge', 'quilt']) {
+              if (n.includes(name)) {
+                loader = name;
+                break;
+              }
+            }
+            const isPaperLike = PAPER_LIKE.has(loader);
+            return {
+              loader,
+              isPaperLike,
+              loaders: isPaperLike ? supported.loaders : [loader],
+              gameVersions: supported.game_versions,
+            };
           }
 
           function flattenVersions(payload) {
@@ -192,16 +220,15 @@ jobs:
             if (doModrinth) {
               let uploaded = 0;
               for (const jar of jars) {
-                const { loader, gv } = detect(jar);
-                const gameVersions = [gv];
+                const { loaders, gameVersions } = detect(jar);
                 const body = {
-                  name: `${version} · ${loader} · ${gameVersions[0]}`,
-                  version_number: `${version}+${loader}-${gameVersions[0]}`,
+                  name: `${version}`,
+                  version_number: `${version}`,
                   changelog,
                   dependencies: [],
                   game_versions: gameVersions,
                   version_type: 'release',
-                  loaders: [loader === 'paper' ? 'paper' : loader],
+                  loaders,
                   featured: false,
                   status: 'listed',
                   project_id: process.env.MODRINTH_ID,
@@ -252,7 +279,6 @@ jobs:
             }
             if (!flat.length) throw new Error('No CurseForge game versions resolved');
 
-            const PAPER_LIKE = new Set(['paper', 'bukkit', 'spigot', 'folia', 'purpur']);
             function findMcVersionId(flat, want) {
               const semver = /^\d+\.\d+(?:\.\d+)?$/;
               const exact = flat.find((v) => semver.test(String(v.name)) && v.name === want);
@@ -262,18 +288,17 @@ jobs:
 
             let uploaded = 0;
             for (const jar of jars) {
-              const { loader, gv } = detect(jar);
-              const want = gv || '1.20.1';
-              const isPaperLike = PAPER_LIKE.has(loader);
+              const { loader, loaders, gameVersions, isPaperLike } = detect(jar);
               const meta = {
                 changelog,
                 changelogType: 'markdown',
-                displayName: `${version} · ${loader} · ${want}`,
+                displayName: `${version} · ${loaders.join('/')}`,
                 releaseType: 'release',
               };
               if (isPaperLike) {
-                meta.gameVersionNames = [want, 'Client', 'Server'];
+                meta.gameVersionNames = [...gameVersions, 'Client', 'Server'];
               } else {
+                const want = gameVersions[0] || process.env.DEFAULT_GAME_VERSION || '1.20.1';
                 const mcId = findMcVersionId(flat, want);
                 const loaderId = LOADER_IDS[loader];
                 const clientId = findVersionId(flat, 'Client');
@@ -281,11 +306,11 @@ jobs:
                 if (mcId == null) {
                   throw new Error('No CurseForge game version id for ' + want + ' (' + path.basename(jar) + ')');
                 }
-                const gameVersions = [mcId];
-                if (loaderId != null) gameVersions.push(loaderId);
-                if (clientId != null) gameVersions.push(clientId);
-                if (serverId != null) gameVersions.push(serverId);
-                meta.gameVersions = gameVersions;
+                const ids = [mcId];
+                if (loaderId != null) ids.push(loaderId);
+                if (clientId != null) ids.push(clientId);
+                if (serverId != null) ids.push(serverId);
+                meta.gameVersions = ids;
                 const gameVersionNames = [];
                 if (clientId == null) gameVersionNames.push('Client');
                 if (serverId == null) gameVersionNames.push('Server');

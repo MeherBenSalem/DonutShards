@@ -1,4 +1,10 @@
-# Patch Notes — 1.5.1
+# Patch Notes — 1.5.2
+
+**Minecraft 26.3:** Compiles against Paper API `26.3.build.49-alpha`. Boot-tested on Paper 26.3 ALPHA build 133. `api-version` stays `1.20` so 1.20.1–26.2 still load. Folia-supported remains true (no Folia 26.3; Folia 26.2 is the current Folia target).
+
+**API:** Sounds, zone particles, shop enchantments, and kill-reward mob keys use Registry lookups with enum/constant fallbacks instead of deprecated-for-removal `Sound.valueOf` / `Enchantment.getByName`. Particle lookup does not assume `Keyed` (1.20.1 Particle is not Keyed).
+
+## 1.5.1
 
 **Folia:** `/afk zone` now uses Paper `teleportAsync` and finishes sync/chat on the destination region thread.
 

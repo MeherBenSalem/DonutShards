@@ -2,13 +2,13 @@ package com.nightbeam.donutshards.zone;
 
 import com.nightbeam.donutshards.scheduler.SchedulerService;
 import com.nightbeam.donutshards.scheduler.TaskHandle;
+import com.nightbeam.donutshards.util.RegistryLookups;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 import java.time.Duration;
-import java.util.Locale;
 
 public final class ZoneParticleService {
     private final Plugin plugin;
@@ -37,11 +37,7 @@ public final class ZoneParticleService {
         intervalSeconds = Math.max(1, config.getLong("afk.zone-particles.interval-seconds", 2));
         viewRadius = Math.max(8.0, config.getDouble("afk.zone-particles.view-radius", 64));
         var name = config.getString("afk.zone-particles.particle", "END_ROD");
-        try {
-            particle = Particle.valueOf(name.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            particle = Particle.END_ROD;
-        }
+        particle = RegistryLookups.particle(name, Particle.END_ROD);
     }
 
     public void start() {

@@ -23,7 +23,7 @@ DonutShards is an original donut-and-cosmic virtual currency plugin built around
 
 | Platform | Minecraft versions | Runtime |
 | --- | --- | --- |
-| Paper, Folia, Purpur, Spigot, Bukkit | 1.20.1–26.2 | Java 21 (Java 25 for 26.1.2+) |
+| Paper, Folia, Purpur, Spigot, Bukkit | 1.20.1–26.3 | Java 21 (Java 25 for 26.1.2+) |
 
 The plugin targets Java 21 bytecode. See `release/supported-minecraft.json` for the full version list.
 
@@ -52,6 +52,11 @@ The plugin targets Java 21 bytecode. See `release/supported-minecraft.json` for 
 5. Restart and confirm that DonutShards reports a successful connection.
 
 Vault and PlaceholderAPI are optional soft dependencies.
+
+## Version 1.5.2
+
+- Minecraft 26.3 support (compiled against Paper API `26.3.build.49-alpha`, boot-tested on Paper 26.3 build 133)
+- Registry lookups for sounds, particles, enchantments, and entity types
 
 ## Version 1.5.1
 

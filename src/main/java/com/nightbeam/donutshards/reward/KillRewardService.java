@@ -1,11 +1,122 @@
 package com.nightbeam.donutshards.reward;
-import com.nightbeam.donutshards.model.*;import com.nightbeam.donutshards.service.MessageService;import com.nightbeam.donutshards.transaction.TransactionService;import org.bukkit.configuration.file.YamlConfiguration;import org.bukkit.entity.EntityType;import org.bukkit.entity.Player;import java.io.File;import java.util.*;import java.util.concurrent.ConcurrentHashMap;
-public final class KillRewardService {private final TransactionService tx;private final MessageService messages;private final File file;private final Map<UUID,Long> playerCooldowns=new ConcurrentHashMap<>();private volatile boolean enabled;private volatile boolean playerKillEnabled;private volatile long playerKillShards;private volatile long playerKillCooldownSeconds;private volatile long mobDefaultShards;private volatile Map<EntityType,Long> mobRewards=Map.of();
- public KillRewardService(TransactionService tx,MessageService messages,File file){this.tx=tx;this.messages=messages;this.file=file;reload();}
- public void reload(){if(!file.exists()){enabled=false;return;}var yaml=YamlConfiguration.loadConfiguration(file);enabled=yaml.getBoolean("enabled",true);playerKillEnabled=yaml.getBoolean("player-kill.enabled",true);playerKillShards=Math.max(0,yaml.getLong("player-kill.shards",5));playerKillCooldownSeconds=Math.max(0,yaml.getLong("player-kill.cooldown-seconds",30));mobDefaultShards=Math.max(0,yaml.getLong("mob-kills.default",1));var section=yaml.getConfigurationSection("mob-kills");var map=new EnumMap<EntityType,Long>(EntityType.class);if(section!=null)for(var key:section.getKeys(false))if(!key.equalsIgnoreCase("default"))try{map.put(EntityType.valueOf(key.toUpperCase(Locale.ROOT)),Math.max(0,section.getLong(key)));}catch(IllegalArgumentException ignored){}mobRewards=Map.copyOf(map);}
- public boolean enabled(){return enabled;}
- public void handlePlayerKill(Player killer,Player victim){if(!enabled||!playerKillEnabled||playerKillShards<1)return;if(killer.getUniqueId().equals(victim.getUniqueId()))return;if(!cooldownReady(killer.getUniqueId(),playerKillCooldownSeconds))return;award(killer,playerKillShards,"player-kill",Map.of("victim",victim.getName()));playerCooldowns.put(killer.getUniqueId(),System.currentTimeMillis());}
- public void handleMobKill(Player killer,EntityType type){if(!enabled)return;var amount=mobRewards.getOrDefault(type,mobDefaultShards);if(amount<1)return;award(killer,amount,"mob-kill",Map.of("entity",type.name()));}
- private boolean cooldownReady(UUID id,long seconds){if(seconds<=0)return true;var last=playerCooldowns.get(id);return last==null||System.currentTimeMillis()-last>=seconds*1000L;}
- private void award(Player killer,long amount,String source,Map<String,String> meta){var metadata=new HashMap<>(meta);metadata.put("source",source);var ctx=new MutationContext(TransactionType.KILL_REWARD,"kill:"+source,killer.getUniqueId(),"kill:"+killer.getUniqueId()+':'+source+':'+(System.currentTimeMillis()/1000),metadata);tx.add(killer.getUniqueId(),amount,ctx).whenComplete((r,e)->{if(e==null&&r.success())killer.sendActionBar(messages.renderKey("kill-reward",Map.of("amount",Long.toString(amount))));});}
+
+import com.nightbeam.donutshards.model.MutationContext;
+import com.nightbeam.donutshards.model.TransactionType;
+import com.nightbeam.donutshards.service.MessageService;
+import com.nightbeam.donutshards.transaction.TransactionService;
+import com.nightbeam.donutshards.util.RegistryLookups;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+public final class KillRewardService {
+    private final TransactionService tx;
+    private final MessageService messages;
+    private final File file;
+    private final Map<UUID, Long> playerCooldowns = new ConcurrentHashMap<>();
+    private volatile boolean enabled;
+    private volatile boolean playerKillEnabled;
+    private volatile long playerKillShards;
+    private volatile long playerKillCooldownSeconds;
+    private volatile long mobDefaultShards;
+    private volatile Map<EntityType, Long> mobRewards = Map.of();
+
+    public KillRewardService(TransactionService tx, MessageService messages, File file) {
+        this.tx = tx;
+        this.messages = messages;
+        this.file = file;
+        reload();
+    }
+
+    public void reload() {
+        if (!file.exists()) {
+            enabled = false;
+            return;
+        }
+        var yaml = YamlConfiguration.loadConfiguration(file);
+        enabled = yaml.getBoolean("enabled", true);
+        playerKillEnabled = yaml.getBoolean("player-kill.enabled", true);
+        playerKillShards = Math.max(0, yaml.getLong("player-kill.shards", 5));
+        playerKillCooldownSeconds = Math.max(0, yaml.getLong("player-kill.cooldown-seconds", 30));
+        mobDefaultShards = Math.max(0, yaml.getLong("mob-kills.default", 1));
+        var section = yaml.getConfigurationSection("mob-kills");
+        var map = new HashMap<EntityType, Long>();
+        if (section != null) {
+            for (var key : section.getKeys(false)) {
+                if (key.equalsIgnoreCase("default")) {
+                    continue;
+                }
+                var type = RegistryLookups.entityType(key);
+                if (type != null) {
+                    map.put(type, Math.max(0, section.getLong(key)));
+                }
+            }
+        }
+        mobRewards = Map.copyOf(map);
+    }
+
+    public boolean enabled() {
+        return enabled;
+    }
+
+    public Map<EntityType, Long> mobRewards() {
+        return mobRewards;
+    }
+
+    public void handlePlayerKill(Player killer, Player victim) {
+        if (!enabled || !playerKillEnabled || playerKillShards < 1) {
+            return;
+        }
+        if (killer.getUniqueId().equals(victim.getUniqueId())) {
+            return;
+        }
+        if (!cooldownReady(killer.getUniqueId(), playerKillCooldownSeconds)) {
+            return;
+        }
+        award(killer, playerKillShards, "player-kill", Map.of("victim", victim.getName()));
+        playerCooldowns.put(killer.getUniqueId(), System.currentTimeMillis());
+    }
+
+    public void handleMobKill(Player killer, EntityType type) {
+        if (!enabled) {
+            return;
+        }
+        var amount = mobRewards.getOrDefault(type, mobDefaultShards);
+        if (amount < 1) {
+            return;
+        }
+        award(killer, amount, "mob-kill", Map.of("entity", type.name().toLowerCase(Locale.ROOT)));
+    }
+
+    private boolean cooldownReady(UUID id, long seconds) {
+        if (seconds <= 0) {
+            return true;
+        }
+        var last = playerCooldowns.get(id);
+        return last == null || System.currentTimeMillis() - last >= seconds * 1000L;
+    }
+
+    private void award(Player killer, long amount, String source, Map<String, String> meta) {
+        var metadata = new HashMap<>(meta);
+        metadata.put("source", source);
+        var ctx = new MutationContext(
+                TransactionType.KILL_REWARD,
+                "kill:" + source,
+                killer.getUniqueId(),
+                "kill:" + killer.getUniqueId() + ':' + source + ':' + (System.currentTimeMillis() / 1000),
+                metadata
+        );
+        tx.add(killer.getUniqueId(), amount, ctx).whenComplete((r, e) -> {
+            if (e == null && r.success()) {
+                killer.sendActionBar(messages.renderKey("kill-reward", Map.of("amount", Long.toString(amount))));
+            }
+        });
+    }
 }
