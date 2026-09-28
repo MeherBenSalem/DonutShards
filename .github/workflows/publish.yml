@@ -61,7 +61,7 @@ jobs:
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
           JAR_NAME="DonutShards-${VERSION}-paper-folia-mc1.20.1-26.3.jar"
-          mapfile -t JARS < <(find releases build/release -maxdepth 1 -type f -name "$JAR_NAME" 2>/dev/null | sort -u)
+          mapfile -t JARS < <(find releases build/release -maxdepth 1 -type f -name "$JAR_NAME" 2>/dev/null | awk -F/ '!seen[$NF]++')
           if [ ${#JARS[@]} -gt 0 ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
             EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
@@ -97,7 +97,7 @@ jobs:
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
           JAR_NAME="DonutShards-${VERSION}-paper-folia-mc1.20.1-26.3.jar"
-          mapfile -t JARS < <(find releases build/release -maxdepth 1 -type f -name "$JAR_NAME" 2>/dev/null | sort -u)
+          mapfile -t JARS < <(find releases build/release -maxdepth 1 -type f -name "$JAR_NAME" 2>/dev/null | awk -F/ '!seen[$NF]++')
           if [ ${#JARS[@]} -eq 0 ]; then
             echo "No jar found: $JAR_NAME" >&2
             exit 1
