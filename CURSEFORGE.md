@@ -40,7 +40,7 @@ DonutShards brings an original donut-and-cosmic currency system to Minecraft ser
 ## Compatibility
 
 - **Server software:** Paper, Folia, Purpur, Spigot, and Bukkit
-- **Minecraft:** 1.20.1 through 26.2
+- **Minecraft:** 1.20.1 through 26.3
 - **Plugin bytecode:** Java 21
 - **Minecraft 26.1.2+ runtime:** Java 25, as required by Paper/Folia
 
@@ -53,6 +53,11 @@ DonutShards brings an original donut-and-cosmic currency system to Minecraft ser
 5. Restart and verify the selected database connection.
 
 SQLite works without additional setup. MariaDB/MySQL users should configure a dedicated, least-privilege database account in `database.yml`.
+
+## Version 1.5.2
+
+- Minecraft 26.3 support (compiled against Paper API `26.3.build.49-alpha`, boot-tested on Paper 26.3 build 133)
+- Registry lookups for sounds, particles, enchantments, and entity types
 
 ## Version 1.5.1
 

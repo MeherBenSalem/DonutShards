@@ -13,7 +13,7 @@ Thank you for your interest in contributing.
 
 ## Development setup
 
-- Java 21 toolchain (see `build.gradle.kts`).
+- Java 25 toolchain to compile against Paper 26.3 API; plugin bytecode is Java 21 (`options.release.set(21)` in `build.gradle.kts`).
 - `./gradlew build` compiles and runs tests; `./gradlew release` produces the release artifact.
 
 ## Code of conduct

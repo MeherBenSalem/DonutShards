@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.2
+
+- Compatibility: Minecraft 26.3 (Paper API `26.3.build.49-alpha`; boot-tested on Paper 26.3 ALPHA build 133). Folia has no 26.3 build; Folia 26.2 remains supported.
+- Compile: JDK 25 is required to compile against the 26.3 API; plugin bytecode stays Java 21.
+- Fix: resolve sounds, particles, enchantments, and kill-reward entity types through Bukkit registries with `valueOf`/constant fallbacks (Sound.valueOf is deprecated-for-removal on 26.3).
+- Publish: GitHub workflow builds with Java 25 and tags Modrinth/CurseForge with the full supported game-version and loader lists from `release/supported-minecraft.json`.
+
 ## 1.5.1
 
 - Fix: `/afk zone` uses `teleportAsync` and runs sync/messages on the destination entity thread (Folia-safe).

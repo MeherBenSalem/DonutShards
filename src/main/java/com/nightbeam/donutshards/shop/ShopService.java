@@ -9,6 +9,7 @@ import com.nightbeam.donutshards.scheduler.SchedulerService;
 import com.nightbeam.donutshards.service.MessageService;
 import com.nightbeam.donutshards.service.PlayerPrefsStore;
 import com.nightbeam.donutshards.transaction.TransactionService;
+import com.nightbeam.donutshards.util.RegistryLookups;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -25,7 +26,6 @@ import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -281,12 +281,7 @@ public final class ShopService implements Listener {
     }
 
     static Enchantment findEnchantment(String name) {
-        var key = name.toLowerCase(Locale.ROOT).replace(' ', '_');
-        var byKey = Enchantment.getByKey(NamespacedKey.minecraft(key));
-        if (byKey != null) {
-            return byKey;
-        }
-        return Enchantment.getByName(key.toUpperCase(Locale.ROOT));
+        return RegistryLookups.enchantment(name);
     }
 
     public void clear() {

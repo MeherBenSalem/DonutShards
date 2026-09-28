@@ -6,9 +6,11 @@ import com.nightbeam.donutshards.scheduler.SchedulerService;
 import com.nightbeam.donutshards.scheduler.TaskHandle;
 import com.nightbeam.donutshards.service.MessageService;
 import com.nightbeam.donutshards.transaction.TransactionService;
+import com.nightbeam.donutshards.util.RegistryLookups;
 import com.nightbeam.donutshards.zone.ZoneService;
 import net.kyori.adventure.title.Title;
 import org.bukkit.GameMode;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -102,7 +104,8 @@ public final class RewardService implements Listener {
                         messages.renderKey("next-reward", placeholders),
                         Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(2), Duration.ofMillis(400))
                 ));
-                p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 1.3f);
+                p.playSound(p.getLocation(), RegistryLookups.sound(
+                        "entity.experience_orb.pickup", Sound.ENTITY_EXPERIENCE_ORB_PICKUP), 0.7f, 1.3f);
             }
         }, () -> {
         }));

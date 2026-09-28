@@ -5,7 +5,7 @@ DonutShards is an original donut-and-cosmic shard economy for modern Paper and F
 ## Compatibility
 
 - Java 21 bytecode.
-- Paper, Folia, Purpur, Spigot, and Bukkit **1.20.1 through 26.2** (see `release/supported-minecraft.json`).
+- Paper, Folia, Purpur, Spigot, and Bukkit **1.20.1 through 26.3** (see `release/supported-minecraft.json`).
 - SQLite by default; MariaDB and compatible MySQL servers are optional.
 - PlaceholderAPI and Vault are soft dependencies and never required for startup.
 
