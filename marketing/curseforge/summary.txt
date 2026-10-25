@@ -1,0 +1,1 @@
+Shard economy for Paper and Folia: draw AFK zones with a wand, boss-bar countdowns, per-zone payouts, server boosters, rotating Daily Deals and leaderboards in your world. One jar for Minecraft 1.20.1 to 26.3.
