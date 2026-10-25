@@ -17,11 +17,10 @@ import org.bukkit.inventory.meta.SkullMeta;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 public final class LeaderboardGui implements Listener {
     private static final int SIZE = 54;
-    private static final int PREV_SLOT = 45;
-    private static final int NEXT_SLOT = 53;
     /** Slots 0–44 for entries; 45/53 reserved for prev/next. */
     private static final int MAX_PAGE_SIZE = 45;
     private static final int SQL_CAP = 100;
@@ -30,9 +29,12 @@ public final class LeaderboardGui implements Listener {
     private final SchedulerService scheduler;
     private final MessageService messages;
     private final AtomicInteger pageSize;
+    private final Supplier<GuiConfig> gui;
 
-    public LeaderboardGui(TransactionService tx, SchedulerService scheduler, MessageService messages, AtomicInteger pageSize) {
+    public LeaderboardGui(TransactionService tx, SchedulerService scheduler, MessageService messages, AtomicInteger pageSize,
+                          Supplier<GuiConfig> gui) {
         this.tx = tx;
+        this.gui = gui;
         this.scheduler = scheduler;
         this.messages = messages;
         this.pageSize = pageSize;
@@ -70,11 +72,17 @@ public final class LeaderboardGui implements Listener {
             for (int i = 0; i < slice.size(); i++) {
                 inv.setItem(i, entryStack(slice.get(i), from + i + 1));
             }
+            var config = gui.get();
             if (safePage > 0) {
-                inv.setItem(PREV_SLOT, navStack(Material.ARROW, "<yellow>Previous page"));
+                inv.setItem(config.previous().slot(), navStack(config.previous().material(), config.previous().name()));
             }
             if (to < entries.size() && to < SQL_CAP) {
-                inv.setItem(NEXT_SLOT, navStack(Material.ARROW, "<yellow>Next page"));
+                inv.setItem(config.next().slot(), navStack(config.next().material(), config.next().name()));
+            }
+            for (int slot = MAX_PAGE_SIZE; slot < SIZE; slot++) {
+                if (inv.getItem(slot) == null) {
+                    inv.setItem(slot, navStack(config.filler().material(), config.filler().name()));
+                }
             }
             player.openInventory(inv);
         }, () -> {
@@ -90,8 +98,7 @@ public final class LeaderboardGui implements Listener {
             }
             for (int i = 0; i < entries.size(); i++) {
                 var entry = entries.get(i);
-                var offline = Bukkit.getOfflinePlayer(entry.player());
-                var name = offline.getName() == null ? entry.player().toString() : offline.getName();
+                var name = displayName(entry);
                 messages.sendKey(player, "top-entry", Map.of(
                         "rank", Integer.toString(i + 1),
                         "player", name,
@@ -112,9 +119,14 @@ public final class LeaderboardGui implements Listener {
         }
         event.setCancelled(true);
         var slot = event.getRawSlot();
-        if (slot == PREV_SLOT && holder.page() > 0) {
+        var config = gui.get();
+        var clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType() == config.filler().material()) {
+            return;
+        }
+        if (slot == config.previous().slot() && holder.page() > 0) {
             open(player, holder.page() - 1);
-        } else if (slot == NEXT_SLOT) {
+        } else if (slot == config.next().slot()) {
             open(player, holder.page() + 1);
         }
     }
@@ -128,7 +140,7 @@ public final class LeaderboardGui implements Listener {
 
     private ItemStack entryStack(LeaderboardEntry entry, int rank) {
         var offline = Bukkit.getOfflinePlayer(entry.player());
-        var name = offline.getName() == null ? entry.player().toString() : offline.getName();
+        var name = displayName(entry);
         var stack = new ItemStack(Material.PLAYER_HEAD);
         var meta = stack.getItemMeta();
         if (meta instanceof SkullMeta skull) {
@@ -151,6 +163,15 @@ public final class LeaderboardGui implements Listener {
             stack.setItemMeta(meta);
         }
         return stack;
+    }
+
+    /** The stored name, else the server's cached name, else a short UUID. */
+    public static String displayName(LeaderboardEntry entry) {
+        if (entry.name() != null && !entry.name().isBlank()) {
+            return entry.name();
+        }
+        var offline = Bukkit.getOfflinePlayer(entry.player()).getName();
+        return offline == null ? entry.player().toString().substring(0, 8) : offline;
     }
 
     private ItemStack navStack(Material material, String name) {

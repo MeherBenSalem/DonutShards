@@ -82,10 +82,46 @@ public final class ZoneParticleService {
         if (!nearby) {
             return;
         }
-        var points = ringPoints(zone.x(), zone.y(), zone.z(), zone.radius(), ringPoints, verticalSamples);
+        var points = zone.isBox()
+                ? boxOutline(zone.box(), ringPoints)
+                : ringPoints(zone.x(), zone.y(), zone.z(), zone.radius(), ringPoints, verticalSamples);
         for (var point : points) {
             world.spawnParticle(particle, point[0], point[1], point[2], countPerPoint, 0, 0, 0, 0);
         }
+    }
+
+    /** Points along the edge of the box floor, one block above the lowest selected layer, about every block. */
+    static double[][] boxOutline(com.nightbeam.donutshards.core.ZoneBox box, int minimumPoints) {
+        double x0 = box.minX();
+        double z0 = box.minZ();
+        double x1 = box.maxX() + 1;
+        double z1 = box.maxZ() + 1;
+        var y = box.minY() + 1.1;
+        var perimeter = 2 * ((x1 - x0) + (z1 - z0));
+        var count = (int) Math.max(minimumPoints, Math.min(512, Math.ceil(perimeter)));
+        var points = new double[count][3];
+        for (var i = 0; i < count; i++) {
+            var d = perimeter * i / count;
+            double px;
+            double pz;
+            if (d < x1 - x0) {
+                px = x0 + d;
+                pz = z0;
+            } else if (d < (x1 - x0) + (z1 - z0)) {
+                px = x1;
+                pz = z0 + d - (x1 - x0);
+            } else if (d < 2 * (x1 - x0) + (z1 - z0)) {
+                px = x1 - (d - (x1 - x0) - (z1 - z0));
+                pz = z1;
+            } else {
+                px = x0;
+                pz = z1 - (d - 2 * (x1 - x0) - (z1 - z0));
+            }
+            points[i][0] = px;
+            points[i][1] = y;
+            points[i][2] = pz;
+        }
+        return points;
     }
 
     static double[][] ringPoints(double x, double y, double z, double radius, int ringPoints, int verticalSamples) {

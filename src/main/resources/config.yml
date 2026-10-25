@@ -9,7 +9,11 @@ transfer:
   confirmation-threshold: 100000
 leaderboard:
   page-size: 10
+  # How long %donutshard_top_*% placeholders reuse the top list.
   cache-seconds: 60
+  # In-world boards (/shardmanager board create <name>).
+  board-refresh-seconds: 30
+  board-rows: 10
 conversion:
   enabled: true
   # shards-per-dollar (default) keeps 1.2.0 behaviour: 100 shards per $1.
@@ -29,11 +33,24 @@ conversion:
   minimum-shards: 1
   minimum-dollars: 0.01
 rewards:
+  # Defaults for zones without their own shards/interval-seconds (see zones.yml), and for home AFK.
   interval-seconds: 60
   zone-shards: 1
+  # Kept for 1.x configs; rewards are only ever paid in a zone or in home AFK.
   require-zone-or-home: true
+  # What a player sees when a reward is paid.
+  title: true
+  action-bar: true
+  sound: true
 afk:
   auto-rejoin-in-zone: true
+  # A boss bar with the zone, the countdown to the next payout and the session total.
+  boss-bar:
+    enabled: true
+    # PINK, BLUE, RED, GREEN, YELLOW, PURPLE or WHITE
+    color: PINK
+  # When a player leaves a zone after earning: time spent and shards earned there.
+  session-summary: true
   home-mode:
     enabled: true
     shard-multiplier: 0.5
@@ -48,6 +65,13 @@ afk:
     vertical-samples: 3
     interval-seconds: 2
     view-radius: 64
+boosters:
+  # /shardmanager booster start <multiplier> <duration> [reason]
+  max-multiplier: 10
+  applies-to-kills: true
+  boss-bar:
+    enabled: true
+    color: YELLOW
 debug: false
 bstats: true
 update-check: true

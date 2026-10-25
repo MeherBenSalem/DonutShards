@@ -14,4 +14,14 @@ public interface DonutShardsApi {
     boolean isInAfkZone(UUID player);
     Optional<String> getCurrentAfkZone(UUID player);
     void registerAntiCheatProvider(AntiCheatFlagProvider provider);
+
+    /** The running server booster's multiplier, 1 when none is active. Since 2.0. */
+    default double getActiveBoosterMultiplier() {
+        return 1.0;
+    }
+
+    /** The player's ledger entries, newest first. Since 2.0. */
+    default CompletionStage<List<ShardTransaction>> getHistory(UUID player, int limit, int offset) {
+        return java.util.concurrent.CompletableFuture.completedFuture(List.of());
+    }
 }

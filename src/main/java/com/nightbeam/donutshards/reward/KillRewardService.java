@@ -1,5 +1,7 @@
 package com.nightbeam.donutshards.reward;
 
+import com.nightbeam.donutshards.booster.BoosterService;
+import com.nightbeam.donutshards.core.RewardMath;
 import com.nightbeam.donutshards.model.MutationContext;
 import com.nightbeam.donutshards.model.TransactionType;
 import com.nightbeam.donutshards.service.MessageService;
@@ -20,6 +22,8 @@ public final class KillRewardService {
     private final TransactionService tx;
     private final MessageService messages;
     private final File file;
+    private final BoosterService boosters;
+    private final com.nightbeam.donutshards.scheduler.SchedulerService scheduler;
     private final Map<UUID, Long> playerCooldowns = new ConcurrentHashMap<>();
     private volatile boolean enabled;
     private volatile boolean playerKillEnabled;
@@ -28,8 +32,11 @@ public final class KillRewardService {
     private volatile long mobDefaultShards;
     private volatile Map<EntityType, Long> mobRewards = Map.of();
 
-    public KillRewardService(TransactionService tx, MessageService messages, File file) {
+    public KillRewardService(TransactionService tx, MessageService messages, File file, BoosterService boosters,
+                             com.nightbeam.donutshards.scheduler.SchedulerService scheduler) {
         this.tx = tx;
+        this.scheduler = scheduler;
+        this.boosters = boosters;
         this.messages = messages;
         this.file = file;
         reload();
@@ -77,7 +84,7 @@ public final class KillRewardService {
         if (killer.getUniqueId().equals(victim.getUniqueId())) {
             return;
         }
-        if (!cooldownReady(killer.getUniqueId(), playerKillCooldownSeconds)) {
+        if (!killer.hasPermission("shards.bypass.cooldown") && !cooldownReady(killer.getUniqueId(), playerKillCooldownSeconds)) {
             return;
         }
         award(killer, playerKillShards, "player-kill", Map.of("victim", victim.getName()));
@@ -103,19 +110,24 @@ public final class KillRewardService {
         return last == null || System.currentTimeMillis() - last >= seconds * 1000L;
     }
 
-    private void award(Player killer, long amount, String source, Map<String, String> meta) {
+    private void award(Player killer, long base, String source, Map<String, String> meta) {
+        var amount = RewardMath.payout(base, 1.0, RewardService.rankMultiplier(killer), boosters.killMultiplier());
+        if (amount < 1) {
+            return;
+        }
         var metadata = new HashMap<>(meta);
         metadata.put("source", source);
         var ctx = new MutationContext(
                 TransactionType.KILL_REWARD,
                 "kill:" + source,
                 killer.getUniqueId(),
-                "kill:" + killer.getUniqueId() + ':' + source + ':' + (System.currentTimeMillis() / 1000),
+                "kill:" + killer.getUniqueId() + ':' + source + ':' + UUID.randomUUID(),
                 metadata
         );
         tx.add(killer.getUniqueId(), amount, ctx).whenComplete((r, e) -> {
             if (e == null && r.success()) {
-                killer.sendActionBar(messages.renderKey("kill-reward", Map.of("amount", Long.toString(amount))));
+                scheduler.entity(killer, () -> killer.sendActionBar(messages.renderKey("kill-reward", Map.of("amount", Long.toString(amount)))), () -> {
+                });
             }
         });
     }

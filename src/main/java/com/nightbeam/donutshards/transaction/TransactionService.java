@@ -14,7 +14,12 @@ public final class TransactionService {
     public CompletionStage<TransactionResult> remove(UUID id,long amount,MutationContext ctx){if(amount<=0)return CompletableFuture.completedFuture(TransactionResult.failure("invalid_amount"));return mutate(id,null,-amount,ctx);}
     public CompletionStage<TransactionResult> set(UUID id,long value,MutationContext ctx){if(value<0)return CompletableFuture.completedFuture(TransactionResult.failure("invalid_amount"));return mutate(id,value,0,ctx);}
     private CompletionStage<TransactionResult> mutate(UUID id,Long absolute,long delta,MutationContext ctx){return submit(()->{var result=repository.mutate(id,absolute,delta,ctx);if(result.success())cache.put(id,result.transaction().newBalance());return result;});}
-    public CompletionStage<TransferResult> transfer(UUID from,UUID to,long amount,int tax,MutationContext ctx){return submit(()->{var result=repository.transfer(from,to,amount,tax,ctx);if(result.success()){cache.remove(from);cache.remove(to);}return result;});}
+    public CompletionStage<TransferResult> transfer(UUID from,UUID to,long amount,int tax,MutationContext ctx){return submit(()->{var result=repository.transfer(from,to,amount,tax,ctx);if(result.success()){cache.put(from,repository.balance(from));cache.put(to,repository.balance(to));}return result;});}
+    public CompletionStage<TransactionResult> limitedRemove(UUID id,long price,MutationContext ctx,String scope,long limit,long resetsAt){if(price<=0)return CompletableFuture.completedFuture(TransactionResult.failure("invalid_amount"));return submit(()->{var result=repository.limitedRemove(id,price,ctx,scope,limit,resetsAt);if(result.success())cache.put(id,result.transaction().newBalance());return result;});}
+    public CompletionStage<Map<String,Long>> limitCounts(Collection<String> scopes){return submit(()->repository.limitCounts(scopes,System.currentTimeMillis()));}
+    public CompletionStage<List<ShardTransaction>> history(UUID id,int limit,int offset){return submit(()->repository.history(id,limit,offset));}
+    /** Records the player's name; also warms the balance cache used by placeholders. */
+    public void touch(UUID id,String name){submit(()->{repository.touch(id,name);cache.put(id,repository.balance(id));return null;});}
     public CompletionStage<Optional<ShardTransaction>> transaction(UUID id){return submit(()->repository.find(id));}
     public CompletionStage<PlayerStatistics> statistics(UUID id){return submit(()->repository.statistics(id));}
     public CompletionStage<List<LeaderboardEntry>> topBalances(int limit){return submit(()->repository.topBalances(limit));}

@@ -9,11 +9,17 @@ import java.util.UUID;
 public final class ConfirmHolder implements InventoryHolder {
     private final UUID session;
     private final ShopItem item;
+    private final boolean deal;
     private Inventory inventory;
 
-    public ConfirmHolder(UUID session, ShopItem item) {
+    public ConfirmHolder(UUID session, ShopItem item, boolean deal) {
         this.session = session;
         this.item = item;
+        this.deal = deal;
+    }
+
+    public boolean deal() {
+        return deal;
     }
 
     public UUID session() {

@@ -83,4 +83,40 @@ class ShopCatalogTest {
         catalog.load(file.toFile());
         assertThat(catalog.items()).isEmpty();
     }
+
+    @Test
+    void loadsDailyDeals(@TempDir Path dir) throws Exception {
+        var file = dir.resolve("shop.yml");
+        Files.writeString(file, """
+                size: 54
+                deals:
+                  rotation-hours: 12
+                  count: 5
+                  slots: [38, 40, 40, 99]
+                  limit-per-player: 2
+                  pool:
+                    apples: {price: 10, material: APPLE}
+                    free: {price: 0, material: STONE}
+                    rockets: {price: 5, material: FIREWORK_ROCKET, amount: 8}
+                """);
+        var catalog = new ShopCatalog();
+        catalog.load(file.toFile());
+        var deals = catalog.deals();
+        assertThat(deals.active()).isTrue();
+        assertThat(deals.slots()).containsExactly(38, 40);
+        assertThat(deals.count()).isEqualTo(2);
+        assertThat(deals.rotationHours()).isEqualTo(12);
+        assertThat(deals.limitPerPlayer()).isEqualTo(2);
+        assertThat(deals.pool()).extracting(ShopItem::id).containsExactly("apples", "rockets");
+        assertThat(catalog.byId("apples")).isEmpty();
+    }
+
+    @Test
+    void noDealsSectionMeansNoDeals(@TempDir Path dir) throws Exception {
+        var file = dir.resolve("shop.yml");
+        Files.writeString(file, "size: 27\n");
+        var catalog = new ShopCatalog();
+        catalog.load(file.toFile());
+        assertThat(catalog.deals().active()).isFalse();
+    }
 }

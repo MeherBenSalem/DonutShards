@@ -1,5 +1,7 @@
-# Zones are created in-game with /shardmanager zone create <name>.
-# Each zone is a sphere around x/y/z with the given radius (blocks).
+# AFK zones. Create them in game: /shardmanager zone wand (or pos1/pos2) then /shardmanager zone create <name>.
+# A box covers the selected blocks plus 2 blocks above, so selecting just the floor works. Zones without a
+# shape are 1.x spheres around x/y/z with the given radius.
+# Optional per zone: shards, interval-seconds, permission, display-name (set with /shardmanager zone set).
 schema-version: 1
 default-radius: 10.0
 zones: {}

@@ -16,11 +16,9 @@ public final class YamlKeyMerger {
             "config.yml",
             "database.yml",
             "messages.yml",
-            "rewards.yml",
             "zones.yml",
             "shop.yml",
             "gui.yml",
-            "anti-abuse.yml",
             "kills.yml"
     );
 
@@ -44,7 +42,7 @@ public final class YamlKeyMerger {
             return;
         }
         var existing = YamlConfiguration.loadConfiguration(dataFile);
-        mergeMissing(existing, defaults);
+        mergeInto(filename, existing, defaults);
         try {
             existing.save(dataFile);
         } catch (IOException error) {
@@ -61,6 +59,31 @@ public final class YamlKeyMerger {
         } catch (IOException error) {
             plugin.getLogger().log(Level.WARNING, "Could not read default " + filename, error);
             return new YamlConfiguration();
+        }
+    }
+
+    /**
+     * {@link #mergeMissing} with one exception: an operator's shop layout is never changed. Example categories are
+     * not added to an existing shop.yml, and Daily Deals arrive switched off (the example slots may be taken).
+     */
+    static void mergeInto(String filename, ConfigurationSection target, ConfigurationSection defaults) {
+        if (!"shop.yml".equals(filename)) {
+            mergeMissing(target, defaults);
+            return;
+        }
+        var hadDeals = target.contains("deals");
+        for (var key : defaults.getKeys(false)) {
+            if ("categories".equals(key) && target.contains(key)) {
+                continue;
+            }
+            if (!target.contains(key)) {
+                target.set(key, defaults.get(key));
+            } else if (target.isConfigurationSection(key) && defaults.isConfigurationSection(key)) {
+                mergeMissing(target.getConfigurationSection(key), defaults.getConfigurationSection(key));
+            }
+        }
+        if (!hadDeals && target.isConfigurationSection("deals")) {
+            target.set("deals.enabled", false);
         }
     }
 

@@ -27,3 +27,46 @@ categories:
         enchantments:
           sharpness: 5
           unbreaking: 3
+  daily-deals:
+    slot: 31
+    icon:
+      material: CLOCK
+      name: "<gold>Daily Deals</gold>"
+      lore: ["<gray>Three offers below, new ones every day.</gray>"]
+# Daily Deals: `count` offers from `pool`, the same for every player, rotating every `rotation-hours`.
+# Each offer can be bought `limit-per-player` times per rotation (shards.bypass.limit skips the limit).
+deals:
+  enabled: true
+  rotation-hours: 24
+  count: 3
+  slots: [38, 40, 42]
+  limit-per-player: 1
+  pool:
+    golden-glaze:
+      price: 40
+      material: GOLDEN_APPLE
+      amount: 2
+      name: "<gold>Golden Glaze</gold>"
+      lore: ["<gray>Two golden apples, half the usual price.</gray>"]
+    comet-crate:
+      price: 60
+      material: EXPERIENCE_BOTTLE
+      amount: 16
+      name: "<aqua>Comet Crate</aqua>"
+      lore: ["<gray>Sixteen bottles of stardust experience.</gray>"]
+    nebula-rockets:
+      price: 30
+      material: FIREWORK_ROCKET
+      amount: 32
+      name: "<light_purple>Nebula Rockets</light_purple>"
+    sprinkle-stack:
+      price: 25
+      material: COOKIE
+      amount: 32
+      name: "<gradient:#ffd166:#ff78b8>Sprinkle Stack</gradient>"
+    meteor-ore:
+      price: 120
+      material: DIAMOND
+      amount: 3
+      name: "<aqua>Meteor Shards</aqua>"
+      lore: ["<gray>Three diamonds, fresh from orbit.</gray>"]

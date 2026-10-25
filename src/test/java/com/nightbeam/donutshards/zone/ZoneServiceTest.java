@@ -154,4 +154,50 @@ class ZoneServiceTest {
         assertThat(service.zone("far")).isPresent();
         assertThat(service.resolveTeleportZone(null).map(AfkZone::name)).contains("far");
     }
+
+    @Test
+    void boxZonesAndSettingsSurviveASaveAndLoad(@org.junit.jupiter.api.io.TempDir Path dir) throws Exception {
+        var file = dir.resolve("zones.yml").toFile();
+        var service = new ZoneService(null, file);
+        assertThat(service.createBox("sweet-spot", "world", com.nightbeam.donutshards.core.ZoneBox.of(0, 64, 0, 4, 64, 4))).isTrue();
+        assertThat(service.createBox("sweet-spot", "world", com.nightbeam.donutshards.core.ZoneBox.of(0, 64, 0, 1, 64, 1))).isFalse();
+        assertThat(service.createBox("bad name", "world", com.nightbeam.donutshards.core.ZoneBox.of(0, 64, 0, 1, 64, 1))).isFalse();
+        service.updateSettings("SWEET-SPOT", ZoneSettings.DEFAULT.withShards(3L).withInterval(20L).withPermission("shards.zone.vip").withDisplayName("<gold>Sweet"));
+        var reloaded = new ZoneService(null, file);
+        var zone = reloaded.zone("sweet-spot").orElseThrow();
+        assertThat(zone.isBox()).isTrue();
+        assertThat(zone.box().maxX()).isEqualTo(4);
+        assertThat(zone.settings().shardsOr(1)).isEqualTo(3);
+        assertThat(zone.settings().intervalOr(60)).isEqualTo(20);
+        assertThat(zone.settings().permission()).isEqualTo("shards.zone.vip");
+        assertThat(zone.label()).isEqualTo("<gold>Sweet");
+        assertThat(zone.contains("world", 2.5, 65, 2.5)).isTrue();
+        assertThat(zone.contains("world", 5.5, 65, 2.5)).isFalse();
+        assertThat(reloaded.findAt(null)).isEmpty();
+        // 1.x readers see a sphere around the box centre.
+        var yaml = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file);
+        assertThat(yaml.getDouble("zones.sweet-spot.x")).isEqualTo(2.5);
+        assertThat(yaml.getDouble("zones.sweet-spot.radius")).isGreaterThan(3);
+    }
+
+    @Test
+    void sphereZonesWithoutSettingsUseDefaults(@org.junit.jupiter.api.io.TempDir Path dir) throws Exception {
+        var file = dir.resolve("zones.yml");
+        Files.writeString(file, """
+                schema-version: 1
+                default-radius: 10.0
+                zones:
+                  lobby:
+                    world: world
+                    x: 0.0
+                    y: 64.0
+                    z: 0.0
+                    radius: 6.0
+                """);
+        var zone = new ZoneService(null, file.toFile()).zone("lobby").orElseThrow();
+        assertThat(zone.isBox()).isFalse();
+        assertThat(zone.settings()).isEqualTo(ZoneSettings.DEFAULT);
+        assertThat(zone.settings().shardsOr(4)).isEqualTo(4);
+        assertThat(zone.label()).isEqualTo("lobby");
+    }
 }

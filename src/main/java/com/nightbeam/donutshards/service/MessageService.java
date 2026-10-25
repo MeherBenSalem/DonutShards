@@ -38,10 +38,17 @@ public final class MessageService {
         return templates.getOrDefault(key, "<red>Missing message: " + key + "</red>");
     }
 
+    /**
+     * Placeholders whose values are MiniMessage written by the server's staff (zone display names, booster reasons)
+     * and are rendered; every other value (player names, typed text) is escaped.
+     */
+    public static final java.util.Set<String> STAFF_FORMATTED = java.util.Set.of("zone", "reason");
+
     public Component render(String input, Map<String, String> values) {
         var text = input;
         for (var e : values.entrySet()) {
-            text = text.replace('<' + e.getKey() + '>', escape(e.getValue()));
+            var value = e.getValue() == null ? "" : e.getValue();
+            text = text.replace('<' + e.getKey() + '>', STAFF_FORMATTED.contains(e.getKey()) ? value : escape(value));
         }
         return mini.deserialize(text);
     }
@@ -59,6 +66,6 @@ public final class MessageService {
     }
 
     private String escape(String value) {
-        return value.replace("<", "\\<").replace(">", "\\>");
+        return mini.escapeTags(value);
     }
 }

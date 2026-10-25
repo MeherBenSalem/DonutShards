@@ -15,12 +15,30 @@ public final class ShopCatalog {
     private volatile String title = "Shop";
     private volatile int size = 27;
     private volatile List<ShopItem> items = List.of();
+    private volatile Deals deals = Deals.NONE;
+
+    /**
+     * The Daily Deals section: {@code count} offers from {@code pool}, placed in {@code slots}, rotating every
+     * {@code rotationHours}, each buyable {@code limitPerPlayer} times per rotation.
+     */
+    public record Deals(boolean enabled, long rotationHours, int count, List<Integer> slots, long limitPerPlayer, List<ShopItem> pool) {
+        public static final Deals NONE = new Deals(false, 24, 0, List.of(), 1, List.of());
+
+        public boolean active() {
+            return enabled && count > 0 && !pool.isEmpty() && !slots.isEmpty();
+        }
+
+        public Optional<ShopItem> byId(String id) {
+            return pool.stream().filter(item -> item.id().equals(id)).findFirst();
+        }
+    }
 
     public void load(File file) {
         if (file == null || !file.exists()) {
             title = "Shop";
             size = 27;
             items = List.of();
+            deals = Deals.NONE;
             return;
         }
         var yaml = YamlConfiguration.loadConfiguration(file);
@@ -51,6 +69,36 @@ public final class ShopCatalog {
             }
         }
         items = List.copyOf(parsed);
+        deals = parseDeals(yaml.getConfigurationSection("deals"), size);
+    }
+
+    static Deals parseDeals(ConfigurationSection section, int size) {
+        if (section == null) {
+            return Deals.NONE;
+        }
+        var slots = new ArrayList<Integer>();
+        for (var slot : section.getIntegerList("slots")) {
+            if (slot >= 0 && slot < size && !slots.contains(slot)) {
+                slots.add(slot);
+            }
+        }
+        var pool = new ArrayList<ShopItem>();
+        var poolSection = section.getConfigurationSection("pool");
+        if (poolSection != null) {
+            for (var key : poolSection.getKeys(false)) {
+                var item = poolSection.getConfigurationSection(key);
+                if (item != null) {
+                    parseItem(key, 0, item, true).filter(ShopItem::purchasable).ifPresent(pool::add);
+                }
+            }
+        }
+        var count = Math.max(0, Math.min(section.getInt("count", slots.size()), slots.size()));
+        return new Deals(section.getBoolean("enabled", true), Math.max(1, section.getLong("rotation-hours", 24)), count,
+                List.copyOf(slots), Math.max(1, section.getLong("limit-per-player", 1)), List.copyOf(pool));
+    }
+
+    public Deals deals() {
+        return deals;
     }
 
     public String title() {

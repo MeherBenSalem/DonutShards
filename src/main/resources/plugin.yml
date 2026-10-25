@@ -3,8 +3,9 @@ version: '${version}'
 main: com.nightbeam.donutshards.DonutShardsPlugin
 api-version: '1.20'
 folia-supported: true
-description: A configurable shard economy, AFK reward, shop, and progression system.
-author: NightBeam
+description: Shard economy with Sweet Spot AFK zones, boosters, Daily Deals and in-world leaderboards for Paper and Folia.
+author: NightBeam Studio
+website: https://github.com/MeherBenSalem/DonutShards
 softdepend: [PlaceholderAPI, Vault]
 commands:
   shards:
@@ -33,24 +34,18 @@ permissions:
       shards.admin.give: true
       shards.admin.take: true
       shards.admin.set: true
-      shards.admin.reset: true
       shards.admin.reload: true
-      shards.admin.rollback: true
       shards.admin.zone: true
-      shards.admin.shop: true
-      shards.admin.migrate: true
-      shards.admin.gui: true
-      shards.admin.debug: true
+      shards.admin.booster: true
+      shards.admin.board: true
+      shards.admin.info: true
   shards.admin.give: {default: op}
   shards.admin.take: {default: op}
   shards.admin.set: {default: op}
-  shards.admin.reset: {default: op}
   shards.admin.reload: {default: op}
-  shards.admin.rollback: {default: op}
   shards.admin.zone: {default: op}
-  shards.admin.shop: {default: op}
-  shards.admin.migrate: {default: op}
-  shards.admin.gui: {default: op}
-  shards.admin.debug: {default: op}
+  shards.admin.booster: {default: op}
+  shards.admin.board: {default: op}
+  shards.admin.info: {default: op}
   shards.bypass.cooldown: {default: op}
-  shards.bypass.limit: {default: op}
+  shards.bypass.limit: {default: false}

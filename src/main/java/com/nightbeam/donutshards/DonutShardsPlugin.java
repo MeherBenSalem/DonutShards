@@ -2,6 +2,8 @@ package com.nightbeam.donutshards;
 
 import com.nightbeam.donutshards.api.DefaultDonutShardsApi;
 import com.nightbeam.donutshards.api.DonutShardsApi;
+import com.nightbeam.donutshards.board.BoardService;
+import com.nightbeam.donutshards.booster.BoosterService;
 import com.nightbeam.donutshards.command.CommandRouter;
 import com.nightbeam.donutshards.config.YamlKeyMerger;
 import com.nightbeam.donutshards.database.DatabaseConfig;
@@ -24,6 +26,7 @@ import com.nightbeam.donutshards.util.ModrinthUpdateChecker;
 import com.nightbeam.donutshards.zone.ZoneListener;
 import com.nightbeam.donutshards.zone.ZoneParticleService;
 import com.nightbeam.donutshards.zone.ZoneService;
+import com.nightbeam.donutshards.zone.ZoneWand;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.ServicePriority;
@@ -33,6 +36,7 @@ import java.io.File;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public final class DonutShardsPlugin extends JavaPlugin {
@@ -47,6 +51,10 @@ public final class DonutShardsPlugin extends JavaPlugin {
     private volatile MessageService messages;
     private volatile ZoneParticleService particles;
     private volatile PlayerPrefsStore playerPrefs;
+    private volatile BoosterService boosters;
+    private volatile BoardService boards;
+    private final CommandRouter.TransferRules transfers = new CommandRouter.TransferRules();
+    private final AtomicLong topCacheMillis = new AtomicLong(60_000);
     private final AtomicInteger tax = new AtomicInteger();
     private final AtomicInteger leaderboardPageSize = new AtomicInteger(10);
     private final AtomicBoolean homeModeEnabled = new AtomicBoolean(true);
@@ -92,18 +100,24 @@ public final class DonutShardsPlugin extends JavaPlugin {
             }
             conversion = new ConversionService(tx, vault);
             conversion.reload(config);
-            killRewards = new KillRewardService(tx, messages, new File(getDataFolder(), "kills.yml"));
-            var api = new DefaultDonutShardsApi(tx, zones, tax.get());
+            boosters = new BoosterService(getDataFolder(), getLogger(), messages, scheduler);
+            boosters.configure(config);
+            killRewards = new KillRewardService(tx, messages, new File(getDataFolder(), "kills.yml"), boosters, scheduler);
+            var api = new DefaultDonutShardsApi(tx, zones, tax, boosters::multiplier);
             shop = new ShopService(this, tx, scheduler, messages, playerPrefs,
                     new File(getDataFolder(), "shop.yml"), new File(getDataFolder(), "gui.yml"));
-            rewards = new RewardService(tx, scheduler, messages, zones);
-            rewards.configure(config.getLong("rewards.interval-seconds", 60), config.getLong("rewards.zone-shards", 1),
-                    config.getDouble("afk.home-mode.shard-multiplier", 0.5), config.getBoolean("rewards.require-zone-or-home", true));
+            shop.serverId(config.getString("server-id", "server-1"));
+            rewards = new RewardService(tx, scheduler, messages, zones, boosters);
+            rewards.configure(config);
             particles = new ZoneParticleService(this, scheduler, zones);
             particles.configure(config);
-            var leaderboard = new LeaderboardGui(tx, scheduler, messages, leaderboardPageSize);
+            boards = new BoardService(this, new File(getDataFolder(), "boards.yml"), tx, scheduler, messages);
+            boards.configure(config);
+            var wand = new ZoneWand(this, messages);
+            var leaderboard = new LeaderboardGui(tx, scheduler, messages, leaderboardPageSize, shop::gui);
             var commands = new CommandRouter(tx, scheduler, messages, zones, shop, conversion, playerPrefs, leaderboard,
-                    tax, homeModeEnabled, this::reloadConfigs);
+                    tax, homeModeEnabled, this::reloadConfigs, wand, boosters, boards, rewards, transfers);
+            var rewardService = rewards;
             scheduler.global(() -> {
                 if (stopping.get()) {
                     return;
@@ -115,19 +129,27 @@ public final class DonutShardsPlugin extends JavaPlugin {
                         command.setTabCompleter(commands);
                     }
                 }
-                getServer().getPluginManager().registerEvents(shop, this);
-                getServer().getPluginManager().registerEvents(rewards, this);
-                getServer().getPluginManager().registerEvents(leaderboard, this);
-                getServer().getPluginManager().registerEvents(new ZoneListener(zones, messages, scheduler), this);
-                getServer().getPluginManager().registerEvents(new KillRewardListener(killRewards), this);
+                var plugins = getServer().getPluginManager();
+                plugins.registerEvents(shop, this);
+                plugins.registerEvents(rewardService, this);
+                plugins.registerEvents(leaderboard, this);
+                plugins.registerEvents(wand, this);
+                plugins.registerEvents(new ZoneListener(zones, messages, scheduler), this);
+                plugins.registerEvents(new KillRewardListener(killRewards), this);
                 getServer().getServicesManager().register(DonutShardsApi.class, api, this, ServicePriority.Normal);
                 registerPlaceholderApi(tx);
                 if (config.getBoolean("bstats", true)) {
                     enableBstats();
                 }
                 ModrinthUpdateChecker.checkAsync(this, scheduler, config.getBoolean("update-check", true));
-                rewards.start();
+                // Players already online (plugin loaded late) are tracked like fresh joins.
+                for (var player : getServer().getOnlinePlayers()) {
+                    rewardService.track(player);
+                    tx.touch(player.getUniqueId(), player.getName());
+                }
+                rewardService.start();
                 particles.start();
+                boards.start();
                 getLogger().info("Database connected and DonutShards is ready.");
             });
         } catch (Throwable error) {
@@ -139,7 +161,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") == null) {
             return;
         }
-        new DonutShardsExpansion(tx).register();
+        new DonutShardsExpansion(tx, zones, rewards, boosters, getDescription().getVersion(), topCacheMillis).register();
         getLogger().info("PlaceholderAPI expansion registered (donutshard_*).");
     }
 
@@ -167,6 +189,14 @@ public final class DonutShardsPlugin extends JavaPlugin {
         if (killRewards != null) {
             killRewards.reload();
         }
+        if (boosters != null) {
+            boosters.configure(config);
+        }
+        if (boards != null) {
+            boards.load();
+            boards.configure(config);
+            boards.start();
+        }
         if (zones != null) {
             zones.reload();
             zones.setAutoRejoinInZone(config.getBoolean("afk.auto-rejoin-in-zone", true));
@@ -176,11 +206,11 @@ public final class DonutShardsPlugin extends JavaPlugin {
             }
         }
         if (shop != null) {
+            shop.serverId(config.getString("server-id", "server-1"));
             shop.reload();
         }
         if (rewards != null) {
-            rewards.configure(config.getLong("rewards.interval-seconds", 60), config.getLong("rewards.zone-shards", 1),
-                    config.getDouble("afk.home-mode.shard-multiplier", 0.5), config.getBoolean("rewards.require-zone-or-home", true));
+            rewards.configure(config);
             rewards.start();
         }
         if (particles != null) {
@@ -194,6 +224,10 @@ public final class DonutShardsPlugin extends JavaPlugin {
         tax.set(Math.max(0, Math.min(10000, config.getInt("transfer.tax-basis-points", 0))));
         leaderboardPageSize.set(Math.min(45, Math.max(1, config.getInt("leaderboard.page-size", 10))));
         homeModeEnabled.set(config.getBoolean("afk.home-mode.enabled", true));
+        transfers.minimum().set(Math.max(1, config.getLong("transfer.minimum", 1)));
+        transfers.maximum().set(Math.max(transfers.minimum().get(), config.getLong("transfer.maximum", 1_000_000)));
+        transfers.confirmationThreshold().set(Math.max(0, config.getLong("transfer.confirmation-threshold", 100_000)));
+        topCacheMillis.set(Math.max(5, config.getLong("leaderboard.cache-seconds", 60)) * 1000L);
     }
 
     private YamlConfiguration loadConfig() {
@@ -208,6 +242,12 @@ public final class DonutShardsPlugin extends JavaPlugin {
         }
         if (rewards != null) {
             rewards.stop();
+        }
+        if (boosters != null) {
+            boosters.shutdown();
+        }
+        if (boards != null) {
+            boards.shutdown();
         }
         if (shop != null) {
             shop.clear();

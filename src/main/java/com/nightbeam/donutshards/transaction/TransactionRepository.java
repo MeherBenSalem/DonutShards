@@ -1,5 +1,6 @@
 package com.nightbeam.donutshards.transaction;
 
+import com.nightbeam.donutshards.database.DatabaseConfig;
 import com.nightbeam.donutshards.database.DatabaseManager;
 import com.nightbeam.donutshards.model.*;
 import com.nightbeam.donutshards.util.JsonMetadata;
@@ -22,16 +23,119 @@ public final class TransactionRepository {
     public List<LeaderboardEntry> topBalances(int limit) throws SQLException {
         var capped = Math.max(1, Math.min(limit, 100));
         var entries = new ArrayList<LeaderboardEntry>();
-        try (var c = database.connection(); var ps = c.prepareStatement("SELECT uuid, balance FROM players ORDER BY balance DESC LIMIT ?")) {
+        try (var c = database.connection(); var ps = c.prepareStatement("SELECT uuid, balance, last_name FROM players ORDER BY balance DESC, uuid LIMIT ?")) {
             ps.setInt(1, capped);
             try (var rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    entries.add(new LeaderboardEntry(UUID.fromString(rs.getString("uuid")), rs.getLong("balance")));
+                    entries.add(new LeaderboardEntry(UUID.fromString(rs.getString("uuid")), rs.getLong("balance"), rs.getString("last_name")));
                 }
             }
         }
         return entries;
     }
+
+    /** Records the player's current name (shown by leaderboards and history). */
+    public void touch(UUID player, String name) throws SQLException {
+        try (var c = database.connection()) {
+            ensure(c, player);
+            try (var ps = c.prepareStatement("UPDATE players SET last_name=? WHERE uuid=?")) {
+                ps.setString(1, name);
+                ps.setString(2, player.toString());
+                ps.executeUpdate();
+            }
+        }
+    }
+
+    /** The player's ledger entries, newest first. */
+    public List<ShardTransaction> history(UUID player, int limit, int offset) throws SQLException {
+        var rows = new ArrayList<ShardTransaction>();
+        try (var c = database.connection(); var ps = c.prepareStatement(
+                "SELECT * FROM transactions WHERE player_uuid=? ORDER BY created_at DESC, id LIMIT ? OFFSET ?")) {
+            ps.setString(1, player.toString());
+            ps.setInt(2, Math.max(1, Math.min(limit, 100)));
+            ps.setInt(3, Math.max(0, offset));
+            try (var rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(map(rs));
+                }
+            }
+        }
+        return rows;
+    }
+
+    /** How many times each limit scope has been used (missing or expired scopes count 0). */
+    public Map<String, Long> limitCounts(Collection<String> scopes, long nowMillis) throws SQLException {
+        var counts = new HashMap<String, Long>();
+        try (var c = database.connection(); var ps = c.prepareStatement("SELECT count, resets_at FROM shop_limits WHERE scope_key=?")) {
+            for (var scope : scopes) {
+                ps.setString(1, scope);
+                try (var rs = ps.executeQuery()) {
+                    counts.put(scope, rs.next() && rs.getLong("resets_at") > nowMillis ? rs.getLong("count") : 0L);
+                }
+            }
+        }
+        return counts;
+    }
+
+    /**
+     * Takes {@code price} shards and uses one of the scope's {@code limit} purchases in one SQL transaction, so two
+     * quick purchases can never pass the limit. Fails with {@code limit_reached} or {@code insufficient_balance}.
+     */
+    public TransactionResult limitedRemove(UUID player, long price, MutationContext context, String scope, long limit, long resetsAt) throws SQLException {
+        try {
+            return database.transaction(c -> {
+                try {
+                    ensure(c, player);
+                    var existing = findByKey(c, context.idempotencyKey());
+                    if (existing.isPresent()) {
+                        return TransactionResult.success(existing.get());
+                    }
+                    long used = 0;
+                    var now = System.currentTimeMillis();
+                    var lock = database.type() != DatabaseConfig.Type.SQLITE ? " FOR UPDATE" : "";
+                    try (var ps = c.prepareStatement("SELECT count, resets_at FROM shop_limits WHERE scope_key=?" + lock)) {
+                        ps.setString(1, scope);
+                        try (var rs = ps.executeQuery()) {
+                            if (rs.next() && rs.getLong("resets_at") > now) {
+                                used = rs.getLong("count");
+                            }
+                        }
+                    }
+                    if (used >= limit) {
+                        return TransactionResult.failure("limit_reached");
+                    }
+                    var before = balance(c, player, true);
+                    var after = Math.subtractExact(before, price);
+                    if (after < 0) {
+                        return TransactionResult.failure("insufficient_balance");
+                    }
+                    update(c, player, after, -price);
+                    var tx = create(c, UUID.randomUUID(), UUID.randomUUID(), player, null, context.type(), -price, before, after, context);
+                    int updated;
+                    try (var ps = c.prepareStatement("UPDATE shop_limits SET count=?, resets_at=? WHERE scope_key=?")) {
+                        ps.setLong(1, used + 1);
+                        ps.setLong(2, resetsAt);
+                        ps.setString(3, scope);
+                        updated = ps.executeUpdate();
+                    }
+                    if (updated == 0) {
+                        try (var ps = c.prepareStatement("INSERT INTO shop_limits(scope_key, count, resets_at) VALUES(?,?,?)")) {
+                            ps.setString(1, scope);
+                            ps.setLong(2, used + 1);
+                            ps.setLong(3, resetsAt);
+                            ps.executeUpdate();
+                        }
+                    }
+                    return TransactionResult.success(tx);
+                } catch (SQLException | ArithmeticException e) {
+                    throw new StorageFailure(e);
+                }
+            });
+        } catch (StorageFailure e) {
+            throw (SQLException) e.getCause();
+        }
+    }
+
     public TransactionResult mutate(UUID player, Long absolute, long delta, MutationContext context) throws SQLException {
         try { return database.transaction(c -> {
             try {

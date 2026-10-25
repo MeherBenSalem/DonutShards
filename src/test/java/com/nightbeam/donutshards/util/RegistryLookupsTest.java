@@ -58,7 +58,7 @@ class RegistryLookupsTest {
                   ZOMBIE: 4
                   not-a-mob: 99
                 """);
-        var service = new KillRewardService(null, null, file.toFile());
+        var service = new KillRewardService(null, null, file.toFile(), null, null);
         assertThat(service.enabled()).isTrue();
         assertThat(service.mobRewards()).containsEntry(EntityType.ZOMBIE, 4L);
         assertThat(service.mobRewards()).doesNotContainKey(null);

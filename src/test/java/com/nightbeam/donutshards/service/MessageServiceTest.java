@@ -31,4 +31,13 @@ class MessageServiceTest {
         messages.load(null);
         assertThat(messages.raw("nope")).contains("Missing message");
     }
+
+    @Test
+    void staffFormattedValuesRenderAndPlayerValuesAreEscaped() {
+        var messages = new MessageService();
+        messages.load(null);
+        var plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText();
+        assertThat(plain.serialize(messages.render("In <zone> by <player>", Map.of("zone", "<gold>Sugar Orbit", "player", "<red>Eve"))))
+                .isEqualTo("In Sugar Orbit by <red>Eve");
+    }
 }
