@@ -50,4 +50,4 @@ Paper, Folia and Purpur on Minecraft 1.20.1 to 26.3. Your balances, zones and se
 
 Drop in the new jar. New config keys are added to your files without touching your values. An existing `shop.yml`
 keeps its layout and gets Daily Deals **switched off** (set `deals.enabled: true` and pick free `slots`). See
-[CONFIGURATION.md](../CONFIGURATION.md).
+[CONFIGURATION.md](https://github.com/MeherBenSalem/DonutShards/blob/master/CONFIGURATION.md).

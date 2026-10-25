@@ -152,7 +152,8 @@ jobs:
             changelogType: 'markdown',
             displayName: `DonutShards ${version}`,
             releaseType: prerelease ? 'beta' : 'release',
-            gameVersionNames: meta.gameVersions,
+            // Same tags as the 1.5.x uploads that CurseForge accepted: every game version plus Client and Server.
+            gameVersionNames: [...meta.gameVersions, 'Client', 'Server'],
           };
           console.log('Jar:', name);
           console.log('Modrinth:', JSON.stringify({ ...modrinth, changelog: `${changelog.length} chars` }));
