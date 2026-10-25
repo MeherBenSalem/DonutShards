@@ -158,12 +158,11 @@ jobs:
           console.log('Jar:', name);
           console.log('Modrinth:', JSON.stringify({ ...modrinth, changelog: `${changelog.length} chars` }));
           console.log('CurseForge:', JSON.stringify({ ...curse, changelog: `${changelog.length} chars` }));
-          if (dryRun) {
-            console.log('Dry run: nothing uploaded.');
-            return;
-          }
-
           (async () => {
+            if (dryRun) {
+              console.log('Dry run: nothing uploaded.');
+              return;
+            }
             const bytes = fs.readFileSync(jar);
             if (doModrinth) {
               if (!process.env.MODRINTH_TOKEN || !process.env.MODRINTH_ID) throw new Error('MODRINTH_TOKEN / MODRINTH_ID missing');
