@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.0 "Sweet Spots"
+
+- Feature: box AFK zones from the Sweet Spot Wand or pos1/pos2; per-zone shards, interval, permission, display name.
+- Feature: per-player AFK timers with a boss bar (zone, countdown, session total) and a session summary.
+- Feature: server boosters (persisted, boss bar) and `shards.multiplier.<x>` rank multipliers.
+- Feature: Daily Deals in the shop (deterministic rotation, per-player limits in the payment transaction).
+- Feature: in-world leaderboard boards (text displays), `/shards history`, `/shardmanager info|history`.
+- Feature: placeholders zone/next_reward/session/booster/booster_time; API booster/history; reward, purchase and transfer events fired.
+- Fix: same-second kills, blocking balance placeholder, recipient message and transfer limits, `\>` in escaped values, unchecked admin nodes, stale API tax, unused gui.yml buttons.
+- Build: Java 17 bytecode against the Paper 1.20.1 API, compile matrix for 1.21.1/26.1.2/26.2/26.3; QA on Paper and Folia with a real client.
+- Docs: Paper/Folia/Purpur only (Spigot/Bukkit were never able to run it).
+
 ## 1.5.2
 
 - Compatibility: Minecraft 26.3 (Paper API `26.3.build.49-alpha`; boot-tested on Paper 26.3 ALPHA build 133). Folia has no 26.3 build; Folia 26.2 remains supported.

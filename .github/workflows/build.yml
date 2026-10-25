@@ -1,0 +1,57 @@
+name: Build
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests, release jar and source checks
+        run: |
+          chmod +x gradlew
+          ./gradlew release --no-daemon
+
+      - name: Compile against every supported Paper API (1.21.1, 26.1.2, 26.2, 26.3)
+        run: ./gradlew compileMatrix --no-daemon
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Publish metadata tests
+        run: node .github/scripts/detect-jar-meta.test.js
+
+      - name: Release jar names parse
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for jar in build/release/donutshards-*.jar releases/donutshards-*.jar; do
+            echo -n "$jar -> "
+            node .github/scripts/detect-jar-meta.js "$jar"
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: donutshards-jar
+          path: build/release/donutshards-*.jar
+          if-no-files-found: error

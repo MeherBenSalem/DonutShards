@@ -3,7 +3,7 @@
  * Local publish for DonutShards — Modrinth + CurseForge.
  *
  * Usage:
- *   node scripts/publish-local.mjs --version 1.4.0 [--platforms both|modrinth|curseforge]
+ *   node scripts/publish-local.mjs --version 2.0.0 [--platforms both|modrinth|curseforge]
  *
  * Requires env (or repo-root .env):
  *   MODRINTH_TOKEN, CURSEFORGE_TOKEN, CURSEFORGE_API_KEY
@@ -12,6 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -43,7 +44,7 @@ function arg(name, fallback) {
 const version = arg('version');
 const platforms = (arg('platforms', 'both') || 'both').toLowerCase();
 if (!version) {
-  console.error('Usage: node scripts/publish-local.mjs --version 1.4.0 [--platforms both|modrinth|curseforge]');
+  console.error('Usage: node scripts/publish-local.mjs --version 2.0.0 [--platforms both|modrinth|curseforge]');
   process.exit(1);
 }
 
@@ -63,31 +64,19 @@ for (const k of [
 const MODRINTH_ID = process.env.MODRINTH_ID || '4krPhA6H';
 const CURSEFORGE_ID = process.env.CURSEFORGE_ID || '1606311';
 
-const supportPath = path.join(root, 'release', 'supported-minecraft.json');
-const support = JSON.parse(fs.readFileSync(supportPath, 'utf8'));
-const gameVersions = Array.isArray(support) ? support : support.game_versions;
-const loaders = Array.isArray(support)
-  ? ['paper', 'folia', 'purpur', 'spigot', 'bukkit']
-  : support.loaders;
-if (!Array.isArray(gameVersions) || gameVersions.length === 0) {
-  console.error('release/supported-minecraft.json has no game versions');
+// Same checks as the Publish workflow: one releases/donutshards-*-<version>.jar whose name matches
+// release/supported-minecraft.json.
+const require = createRequire(import.meta.url);
+const { detectRequired } = require(path.join(root, '.github', 'scripts', 'detect-jar-meta.js'));
+const candidates = fs.existsSync(path.join(root, 'releases'))
+  ? fs.readdirSync(path.join(root, 'releases')).filter((f) => f.startsWith('donutshards-') && f.endsWith(`-${version}.jar`))
+  : [];
+if (candidates.length !== 1) {
+  console.error(`Expected exactly one releases/donutshards-*-${version}.jar, found ${candidates.length}`);
   process.exit(1);
 }
-if (!Array.isArray(loaders) || loaders.length === 0) {
-  console.error('release/supported-minecraft.json has no loaders');
-  process.exit(1);
-}
-
-const jarName = `DonutShards-${version}-paper-folia-mc1.20.1-26.2.jar`;
-const jarCandidates = [
-  path.join(root, 'releases', jarName),
-  path.join(root, 'build', 'release', jarName),
-];
-const jar = jarCandidates.find((p) => fs.existsSync(p));
-if (!jar) {
-  console.error(`No jar found. Expected one of:\n${jarCandidates.join('\n')}`);
-  process.exit(1);
-}
+const jar = path.join(root, 'releases', candidates[0]);
+const { loaders, gameVersions } = detectRequired(jar);
 
 function sectionForVersion(markdown, ver) {
   const lines = markdown.split(/\r?\n/);
@@ -103,6 +92,8 @@ function sectionForVersion(markdown, ver) {
 }
 
 function resolveChangelog(ver) {
+  const notes = path.join(root, 'patchnotes', `${ver}.md`);
+  if (fs.existsSync(notes)) return fs.readFileSync(notes, 'utf8');
   const named = fs.readdirSync(root).filter(
     (f) =>
       f.toLowerCase().endsWith(`-${ver}-patchnotes.md`) ||

@@ -6,14 +6,14 @@ Security fixes are provided for the latest release on the default branch. Older 
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.4.x   | :white_check_mark: |
-| < 1.4   | :x:                |
+| 2.0.x   | :white_check_mark: |
+| < 2.0   | :x:                |
 
 ## Reporting a vulnerability
 
 **Please do not open a public GitHub issue for security vulnerabilities.**
 
-Report security issues through [GitHub Security Advisories](https://github.com/NightBeamStudio/DonutShards/security/advisories/new) (private vulnerability reporting). Include:
+Report security issues through [GitHub Security Advisories](https://github.com/MeherBenSalem/DonutShards/security/advisories/new) (private vulnerability reporting). Include:
 
 - A description of the issue and potential impact
 - Steps to reproduce or a proof of concept
