@@ -1,10 +1,14 @@
 ![DonutShards](https://raw.githubusercontent.com/MeherBenSalem/DonutShards/master/marketing/images/banner.png)
 
+**[Discord](https://discord.gg/TJc3CxR4jK) · [Premium plugins](https://nightbeam.dev/store) · [Support NightBeam](https://nightbeam.dev/support) · [NightBeam Pro](https://nightbeam.dev/memberships) · [All projects](https://nightbeam.dev/projects)**
+
+> **Running a server?** NightBeam's premium plugins are on [BuiltByBit](https://nightbeam.dev/store): NightWatch Pro anti-cheat, the AstralSMP setup, Astral Core and more.
+
 **The shard economy your players will AFK for.** Draw AFK zones with a wand and give each one its own payout. Players
 see every payout coming on a boss bar, spend their shards in a shop whose **Daily Deals** change every day, and fight
 for a spot on **leaderboards that stand in your world**. Run a **booster** for the weekend and everyone feels it.
 
-Paper, Folia and Purpur · Minecraft 1.20.1 to 26.3 · one jar · server-side only, nothing to install for players ·
+Paper, Folia and Purpur · Minecraft 1.20.1 to 26.3 · one jar · server-side, nothing to install for players ·
 SQLite or MariaDB/MySQL
 
 ![What's new in 2.0](https://raw.githubusercontent.com/MeherBenSalem/DonutShards/master/marketing/images/header-whats-new.png)
@@ -109,8 +113,8 @@ Your shop keeps its layout; Daily Deals start switched off until you enable them
 
 **Does it need WorldGuard or a hologram plugin?** No. Zones and leaderboards are built in.
 
-**Can players earn while logged off or walking around the lobby?** No. Only time spent inside a zone (or in home AFK,
-standing still) counts, on the player's own clock, and only while they are online.
+**Can players earn while logged off or walking around the lobby?** No. Time spent inside a zone (or in home AFK,
+standing still) is what counts, on the player's own clock, and just while they are online.
 
 **Does it work on Folia?** Yes. Everything runs on the thread that owns the player or the location.
 
@@ -133,4 +137,14 @@ the other names on the leaderboard are demo balances set with `/shardmanager set
 
 ![](https://raw.githubusercontent.com/MeherBenSalem/DonutShards/master/marketing/images/divider.png)
 
-[Discord](https://discord.gg/SAmd9fhNhr) · [Source and issues](https://github.com/MeherBenSalem/DonutShards) · [Support us](https://nightbeam.dev/support) · Made by NightBeam Studio
+---
+
+### More from NightBeam Studio
+
+- **[Remnants: Ashen Legacy](https://www.curseforge.com/minecraft/modpacks/remnants-ashen-legacy)**: the story-driven soulslike RPG modpack built on NightBeam's mods
+- **[Premium server plugins](https://nightbeam.dev/store)**: anti-cheat, ranked PvP, SMP setups and more on BuiltByBit
+- **[NightBeam Pro](https://nightbeam.dev/memberships)**: the model library and NightBeam Forge credits, from $5 a month
+- **[Discord](https://discord.gg/TJc3CxR4jK)**: support, bug reports, suggestions and early looks
+- **[Support NightBeam](https://nightbeam.dev/support)**: help keep every mod free
+
+**Follow:** [YouTube](https://www.youtube.com/@nightbeamstudio) · [Instagram](https://www.instagram.com/nightbeamstudio/) · [X](https://x.com/NightBeamLLC) · [Facebook](https://www.facebook.com/profile.php?id=61574823331471) · [Source and issues](https://github.com/MeherBenSalem/DonutShards)
