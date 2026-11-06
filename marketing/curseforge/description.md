@@ -1,6 +1,6 @@
 ![DonutShards](https://raw.githubusercontent.com/MeherBenSalem/DonutShards/master/marketing/images/banner.png)
 
-**[Discord](https://discord.gg/TJc3CxR4jK) · [Source and issues](https://github.com/MeherBenSalem/DonutShards)**
+**[Docs](https://nightbeam.dev/docs/donut-shards) · [Discord](https://discord.gg/TJc3CxR4jK) · [Source and issues](https://github.com/MeherBenSalem/DonutShards)**
 
 **The shard economy your players will AFK for.** Draw AFK zones with a wand and give each one its own payout. Players
 see every payout coming on a boss bar, spend their shards in a shop whose **Daily Deals** change every day, and fight
