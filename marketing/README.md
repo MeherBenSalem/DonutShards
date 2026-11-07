@@ -17,8 +17,9 @@ Listing copy and artwork for CurseForge, Modrinth and Hangar.
 The look: a cosmic donut shop at night. A deep plum night sky with scattered stars behind everything, pink-glaze
 titles in rounded Fredoka with a white-to-pink gradient, Outfit for the copy, cream photo frames ringed in each
 feature's colour, sprinkle-shaped bullets and dividers, and one colour per feature (glaze pink for Sweet Spots, gold
-for boosters, mint for Daily Deals, lavender for leaderboards, sky blue for the economy). The icon is a glazed donut
-with a lavender crystal shard rising out of its hole.
+for boosters, mint for Daily Deals, lavender for leaderboards, sky blue for the economy). The icon follows the other Donut
+plugins (DonutRTP, DonutTeams, DonutAuctionHouse, DonutOrders): their pixel-art donut, here in pink glaze, on a dark
+backdrop with drifting sprinkles, and a gold "SHARDS" tag with a pixel amethyst shard.
 
 ## Regenerating the images
 

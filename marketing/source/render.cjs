@@ -130,30 +130,64 @@ const divider = () => page(1400, 44, `
     <div style="height:4px;width:470px;border-radius:2px;background:linear-gradient(270deg,transparent,${C.lilac})"></div>
   </div>`, true);
 
-// The icon: a glazed donut with a crystal shard rising out of its hole, on the night sky.
-const icon = () => page(512, 512, `
-  <div style="position:absolute;inset:0;border-radius:110px;overflow:hidden;background:radial-gradient(circle at 50% 40%, ${C.plum} 0%, ${C.night} 75%)">
-    ${stars(40, 512, 512, 3)}
-    <div class="donut" style="left:46px;top:70px;width:420px;height:420px;filter:drop-shadow(0 16px 20px rgba(0,0,0,.55))"></div>
-    <div style="position:absolute;left:46px;top:70px;width:420px;height:420px;transform:scale(.955);transform-origin:220px 220px">${(() => {
-      // Sprinkles on the glaze ring only.
-      let s = 11; const rnd = () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
-      let h = '';
-      const colors = [C.gold, C.mint, C.sky, C.cream, C.lilac];
-      for (let i = 0; i < 26; i++) {
-        const a = rnd() * Math.PI * 2, r = 220 * (0.52 + rnd() * 0.28);
-        h += `<span class="sprinkle" style="width:30px;height:10px;left:${220 + Math.cos(a) * r - 15}px;top:${220 + Math.sin(a) * r - 5}px;transform:rotate(${Math.round(rnd() * 180)}deg);background:${colors[i % colors.length]}"></span>`;
+// The pixel-art donut shared by every Donut plugin's icon (DonutRTP, DonutTeams, DonutAuctionHouse, DonutOrders),
+// here in DonutShards' pink glaze.
+const pixelDonut = (size) => {
+  const n = 24;
+  const cells = [];
+  const sprinkleAt = new Map([[[7, 7], '#6bc6ff'], [[10, 5], '#ffc24b'], [[14, 5], '#49d6a0'], [[17, 8], '#fff3f8'], [[18, 12], '#6bc6ff'],
+    [[5, 12], '#49d6a0'], [[7, 16], '#ffc24b'], [[15, 18], '#fff3f8'], [[17, 15], '#b38bff'], [[12, 4], '#fff3f8'], [[5, 9], '#ffc24b'],
+    [[11, 18], '#6bc6ff'], [[18, 10], '#ffc24b']].map(([[px, py], color]) => [px + ',' + py, color]));
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      const dx = x + 0.5 - n / 2, dy = y + 0.5 - n / 2, d = Math.hypot(dx, dy), angle = Math.atan2(dy, dx);
+      if (d > 11.2 || d < 3.5) continue;
+      // Dough: golden, darker at the rims.
+      let color = d > 10.3 || d < 4.2 ? '#a8692b' : (d > 9.4 ? '#c98536' : '#e0a14a');
+      // Icing: scalloped edge plus two drips down the front.
+      let edge = 8.2 + Math.sin(angle * 6) * 0.7;
+      edge += Math.exp(-Math.pow((angle - 1.2) / 0.16, 2)) * 2.2 + Math.exp(-Math.pow((angle - 2.25) / 0.14, 2)) * 1.6;
+      if (d >= 4.2 && d < edge) {
+        color = d < 5.0 ? '#ffb2d6' : (d > edge - 0.9 ? '#e2559a' : '#ff6fae');
+        const key = x + ',' + y;
+        if (sprinkleAt.has(key)) color = sprinkleAt.get(key);
       }
-      return h;
-    })()}</div>
-    <div style="position:absolute;left:206px;top:44px;width:100px;height:250px;
-                clip-path:polygon(50% 0%, 100% 30%, 80% 100%, 20% 100%, 0% 30%);
-                background:linear-gradient(115deg, #fff 0%, #d9ccff 22%, ${C.lilac} 48%, #5b3fd6 78%, #3a238f 100%);
-                filter:drop-shadow(0 0 22px rgba(143,124,255,.9))"></div>
-    <div style="position:absolute;left:206px;top:44px;width:100px;height:250px;
-                clip-path:polygon(50% 0%, 50% 100%, 20% 100%, 0% 30%);background:rgba(255,255,255,.28)"></div>
-  </div>
-  <div style="position:absolute;inset:0;border-radius:110px;border:10px solid ${C.glaze};box-shadow:inset 0 0 0 5px ${C.night}"></div>`, true);
+      cells.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${color}"/>`);
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges">${cells.join('')}</svg>`;
+};
+
+// A small pixel amethyst shard for the icon's tag.
+const pixelShard = (height) => {
+  const rows = ['..1..', '.122.', '.123.', '11233', '11233', '11233', '11233', '.123.', '.123.', '..3..'];
+  const fill = { 1: '#d9ccff', 2: '#9b7bff', 3: '#5b3fd6' };
+  const cells = [];
+  rows.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch !== '.') cells.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${fill[ch]}"/>`);
+  }));
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${height / 2}" height="${height}" viewBox="0 0 5 10" shape-rendering="crispEdges">${cells.join('')}</svg>`;
+};
+
+// The icon, in the house style of the other Donut plugins: the pixel donut on a dark tinted backdrop with drifting
+// sprinkles, and a gold tag naming the plugin.
+const icon = () => page(512, 512, `
+  <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,#2d1a44 0%,#170d26 58%,#0b0712 100%)"></div>
+  <canvas style="position:absolute;inset:0;width:512px;height:512px"></canvas><script>
+  (() => { const c = document.currentScript.previousElementSibling; c.width = 512; c.height = 512;
+    const g = c.getContext('2d'); let s = 11; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    const colors = ['#ff6fae', '#ffc24b', '#49d6a0', '#6bc6ff', '#fff3f8', '#b38bff'];
+    for (let i = 0; i < 26; i++) { const x = rnd() * 512, y = rnd() * 512, a = rnd() * Math.PI, l = 10 + rnd() * 12, w = 4 + rnd() * 2;
+      g.save(); g.translate(x, y); g.rotate(a); g.globalAlpha = 0.55 * (.25 + rnd() * .75); g.fillStyle = colors[Math.floor(rnd() * colors.length)];
+      g.beginPath(); g.roundRect(-l / 2, -w / 2, l, w, w / 2); g.fill(); g.restore(); } })();
+  </script>
+  <div style="position:absolute;left:46px;top:46px;width:420px;height:420px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,111,174,.30) 0%,rgba(255,111,174,0) 66%)"></div>
+  <div style="position:absolute;left:64px;top:56px;filter:drop-shadow(0 18px 26px rgba(0,0,0,.6))">${pixelDonut(384)}</div>
+  <div style="position:absolute;right:30px;bottom:40px;display:flex;align-items:center;gap:8px;padding:8px 22px 7px 16px;border-radius:999px;
+    background:linear-gradient(180deg,#ffd76a,#f0a92e);box-shadow:0 10px 26px rgba(0,0,0,.55),inset 0 -3px 0 rgba(120,70,0,.35)">
+    <span style="display:flex;filter:drop-shadow(0 2px 0 rgba(59,34,3,.45))">${pixelShard(52)}</span>
+    <span style="font-family:Body;font-weight:900;font-size:40px;line-height:1;color:#3b2203;letter-spacing:.04em">SHARDS</span></div>`);
 
 const assets = {
   icon,
@@ -248,7 +282,7 @@ assets.divider = divider;
     await p.waitForTimeout(200);
     const { width, height } = await p.evaluate(() => ({ width: document.body.scrollWidth, height: document.body.scrollHeight }));
     await p.setViewportSize({ width, height });
-    const transparent = name.startsWith('header') || name === 'divider' || name === 'icon';
+    const transparent = name.startsWith('header') || name === 'divider';
     await p.screenshot({ path: path.join(out, `${name}.png`), omitBackground: transparent });
     await p.close();
     fs.unlinkSync(file);
