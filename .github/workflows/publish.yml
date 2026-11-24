@@ -7,7 +7,11 @@
 # the checksum, that plugin.yml inside the jar carries the same version, and that the name's Minecraft range matches
 # release/supported-minecraft.json.
 #
-# Secrets: MODRINTH_TOKEN, CURSEFORGE_TOKEN. Variables: MODRINTH_ID, CURSEFORGE_ID.
+# Secrets: MODRINTH_TOKEN, CURSEFORGE_TOKEN, CURSEFORGE_API_KEY (same-day guard). Variables: MODRINTH_ID, CURSEFORGE_ID.
+#
+# Same-day guard (NightBeam convention): scripts/same_day_guard.mjs stops a real run if this plugin already had a
+# release today (Africa/Tunis day), on CurseForge or in an earlier Publish run whose "Upload" step ran. It runs first and
+# again right before the upload; a dry run only reports it, and a dry run never runs the "Upload" step.
 
 name: Publish
 
@@ -32,6 +36,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: publish
@@ -46,6 +51,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Same-day guard
+        env:
+          CURSEFORGE_ID: ${{ vars.CURSEFORGE_ID }}
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PUBLISH_WORKFLOW: publish.yml
+          UPLOAD_STEP: Upload
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: node scripts/same_day_guard.mjs
 
       - name: Resolve version
         id: ver
@@ -106,7 +126,8 @@ jobs:
           echo "path=$jar" >> "$GITHUB_OUTPUT"
           echo "Verified $jar ($actual)"
 
-      - name: Upload
+      - name: Show upload metadata (dry run, uploads nothing)
+        if: ${{ steps.ver.outputs.dry_run == 'true' }}
         env:
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
@@ -116,81 +137,28 @@ jobs:
           JAR: ${{ steps.jar.outputs.path }}
           DRY_RUN: ${{ steps.ver.outputs.dry_run }}
           PLATFORMS: ${{ steps.ver.outputs.platforms }}
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const { detectRequired } = require('./.github/scripts/detect-jar-meta.js');
-          const { VERSION: version, JAR: jar, DRY_RUN, PLATFORMS: platforms } = process.env;
-          const dryRun = DRY_RUN === 'true';
-          const meta = detectRequired(jar);
-          if (meta.version !== version) throw new Error(`Jar version ${meta.version} != ${version}`);
-          const changelog = fs.readFileSync(path.join('patchnotes', `${version}.md`), 'utf8');
-          const prerelease = version.includes('-');
-          const doModrinth = platforms !== 'curseforge';
-          const doCurse = platforms !== 'modrinth';
-          const name = path.basename(jar);
+        run: node scripts/upload-release.cjs
 
-          const modrinth = {
-            name: `DonutShards ${version}`,
-            version_number: version,
-            changelog,
-            dependencies: [],
-            game_versions: meta.gameVersions,
-            version_type: prerelease ? 'beta' : 'release',
-            loaders: meta.loaders,
-            featured: true,
-            status: 'listed',
-            project_id: process.env.MODRINTH_ID,
-            file_parts: ['file_0'],
-            primary_file: 'file_0',
-          };
-          // CurseForge Bukkit-plugin projects take game version names.
-          const curse = {
-            changelog,
-            changelogType: 'markdown',
-            displayName: `DonutShards ${version}`,
-            releaseType: prerelease ? 'beta' : 'release',
-            // Same tags as the 1.5.x uploads that CurseForge accepted: every game version plus Client and Server.
-            gameVersionNames: [...meta.gameVersions, 'Client', 'Server'],
-          };
-          console.log('Jar:', name);
-          console.log('Modrinth:', JSON.stringify({ ...modrinth, changelog: `${changelog.length} chars` }));
-          console.log('CurseForge:', JSON.stringify({ ...curse, changelog: `${changelog.length} chars` }));
-          (async () => {
-            if (dryRun) {
-              console.log('Dry run: nothing uploaded.');
-              return;
-            }
-            const bytes = fs.readFileSync(jar);
-            if (doModrinth) {
-              if (!process.env.MODRINTH_TOKEN || !process.env.MODRINTH_ID) throw new Error('MODRINTH_TOKEN / MODRINTH_ID missing');
-              const form = new FormData();
-              form.append('data', JSON.stringify(modrinth));
-              form.append('file_0', new Blob([bytes]), name);
-              const res = await fetch('https://api.modrinth.com/v2/version', {
-                method: 'POST',
-                headers: { Authorization: process.env.MODRINTH_TOKEN, 'User-Agent': 'NightBeam/DonutShards publish' },
-                body: form,
-              });
-              const text = await res.text();
-              if (!res.ok) throw new Error(`Modrinth ${res.status} ${text.slice(0, 500)}`);
-              console.log('Modrinth OK', text.slice(0, 160));
-            }
-            if (doCurse) {
-              if (!process.env.CURSEFORGE_TOKEN || !process.env.CURSEFORGE_ID) throw new Error('CURSEFORGE_TOKEN / CURSEFORGE_ID missing');
-              const form = new FormData();
-              form.append('metadata', JSON.stringify(curse));
-              form.append('file', new Blob([bytes]), name);
-              const res = await fetch(`https://minecraft.curseforge.com/api/projects/${encodeURIComponent(process.env.CURSEFORGE_ID)}/upload-file`, {
-                method: 'POST',
-                headers: { 'X-Api-Token': process.env.CURSEFORGE_TOKEN },
-                body: form,
-              });
-              const text = await res.text();
-              if (!res.ok) throw new Error(`CurseForge ${res.status} ${text.slice(0, 500)}`);
-              console.log('CurseForge OK', text.slice(0, 160));
-            }
-          })().catch((e) => { console.error(e.message); process.exit(1); });
-          NODE
+      - name: Same-day guard (again, right before upload)
+        env:
+          CURSEFORGE_ID: ${{ vars.CURSEFORGE_ID }}
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PUBLISH_WORKFLOW: publish.yml
+          UPLOAD_STEP: Upload
+          DRY_RUN: ${{ steps.ver.outputs.dry_run }}
+        run: node scripts/same_day_guard.mjs
+
+      - name: Upload
+        if: ${{ steps.ver.outputs.dry_run != 'true' }}
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+          MODRINTH_ID: ${{ vars.MODRINTH_ID }}
+          CURSEFORGE_ID: ${{ vars.CURSEFORGE_ID }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          JAR: ${{ steps.jar.outputs.path }}
+          DRY_RUN: ${{ steps.ver.outputs.dry_run }}
+          PLATFORMS: ${{ steps.ver.outputs.platforms }}
+        run: node scripts/upload-release.cjs

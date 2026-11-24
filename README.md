@@ -11,6 +11,10 @@ permission, and run **server boosters** for events. Everything is stored in a SQ
 [design notes](docs/DESIGN-2.0.md) and the [QA record](docs/QA-2.0.0.md) (in-game checks with a real client on ten
 Paper and Folia servers).
 
+Supported versions: Paper and Folia 1.20 to 26.3, Java 17+ (one jar).
+
+Metrics: bStats plugin ID 33616.
+
 ## Which jar do I download?
 
 There is **one jar for every supported server**: `donutshards-paper-1.20.1-26.3-<version>.jar`. It is a plugin (put it
@@ -76,7 +80,13 @@ Java 25 toolchain (the jar targets Java 17):
 ./gradlew build            # unit tests + jar
 ./gradlew compileMatrix    # compile against the 1.21.1, 26.1.2, 26.2 and 26.3 APIs
 ./gradlew release          # releases/donutshards-paper-1.20.1-26.3-<version>.jar + SHA256SUMS.txt
+./gradlew test             # unit tests only
 ```
+
+CI (`.github/workflows/ci.yml`) runs on every push to `master`: `./gradlew release` (unit tests, jar, source checks),
+`compileMatrix`, `python3 scripts/check_plugin_yml.py` on the jar (`api-version: '1.20'`, `folia-supported: true`, the
+bStats ID, Java 17 bytecode), the publisher script tests, and a smoke boot on Paper 1.20.1, Paper 26.3 and the newest
+Folia (`python3 scripts/smoke_boot.py`).
 
 ## Tools
 

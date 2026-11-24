@@ -40,6 +40,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public final class DonutShardsPlugin extends JavaPlugin {
+    /** bStats plugin ID, also declared as {@code bstats-id} in plugin.yml (checked in CI). */
+    static final int BSTATS_ID = 33616;
     private final AtomicBoolean stopping = new AtomicBoolean();
     private SchedulerService scheduler;
     private volatile DatabaseManager database;
@@ -138,7 +140,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
                 plugins.registerEvents(new KillRewardListener(killRewards), this);
                 getServer().getServicesManager().register(DonutShardsApi.class, api, this, ServicePriority.Normal);
                 registerPlaceholderApi(tx);
-                if (config.getBoolean("bstats", true)) {
+                if (BSTATS_ID > 0 && config.getBoolean("bstats", true)) {
                     enableBstats();
                 }
                 ModrinthUpdateChecker.checkAsync(this, scheduler, config.getBoolean("update-check", true));
@@ -167,7 +169,7 @@ public final class DonutShardsPlugin extends JavaPlugin {
 
     private void enableBstats() {
         try {
-            new org.bstats.bukkit.Metrics(this, 33616);
+            new org.bstats.bukkit.Metrics(this, BSTATS_ID);
         } catch (Throwable error) {
             getLogger().warning("bStats metrics could not be enabled: " + error.getMessage());
         }

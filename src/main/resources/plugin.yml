@@ -3,6 +3,8 @@ version: '${version}'
 main: com.nightbeam.donutshards.DonutShardsPlugin
 api-version: '1.20'
 folia-supported: true
+# bStats plugin ID (Bukkit ignores this key; CI checks it matches BSTATS_ID in DonutShardsPlugin)
+bstats-id: 33616
 description: Shard economy with Sweet Spot AFK zones, boosters, Daily Deals and in-world leaderboards for Paper and Folia.
 author: NightBeam Studio
 website: https://github.com/MeherBenSalem/DonutShards
