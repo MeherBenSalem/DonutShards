@@ -1,10 +1,10 @@
 # Marketing
 
-Listing copy and artwork for CurseForge, Modrinth and Hangar.
+Listing copy and artwork for CurseForge (releases are published there only) and Hangar.
 
 | Path | What it is |
 |------|------------|
-| `curseforge/description.md` | The project description (Markdown; also works on Modrinth). Images load from this repo's `master` branch (its default branch). |
+| `curseforge/description.md` | The project description (Markdown). Images load from this repo's `master` branch (its default branch). |
 | `curseforge/summary.txt` | The one-line summary (under 250 characters). |
 | `images/banner.png` | 1800×600 header banner. |
 | `images/icon.png` | 512×512 project icon (also `logo.png` inside the jar). |

@@ -1,4 +1,5 @@
-# Publishes the DonutShards release jar to Modrinth and CurseForge. Run by the owner only:
+# Publishes the DonutShards release jar to CurseForge (NightBeam convention: CurseForge only since 24 Nov 2026).
+# Run by the owner only:
 #   * push a v*.*.* tag, or
 #   * Actions > Publish > Run workflow (version without "v"; dry_run defaults to true).
 #
@@ -7,11 +8,13 @@
 # the checksum, that plugin.yml inside the jar carries the same version, and that the name's Minecraft range matches
 # release/supported-minecraft.json.
 #
-# Secrets: MODRINTH_TOKEN, CURSEFORGE_TOKEN, CURSEFORGE_API_KEY (same-day guard). Variables: MODRINTH_ID, CURSEFORGE_ID.
+# Secrets: CURSEFORGE_TOKEN (upload), CURSEFORGE_API_KEY (Core API, for the same-day guard). Variable: CURSEFORGE_ID.
+# The existing Modrinth project stays up as it is but gets no new versions.
 #
 # Same-day guard (NightBeam convention): scripts/same_day_guard.mjs stops a real run if this plugin already had a
-# release today (Africa/Tunis day), on CurseForge or in an earlier Publish run whose "Upload" step ran. It runs first and
-# again right before the upload; a dry run only reports it, and a dry run never runs the "Upload" step.
+# release today (Africa/Tunis day), on CurseForge or in an earlier Publish run whose upload step ran ("Upload
+# CurseForge", called "Upload" before 24 Nov 2026). It runs first and again right before the upload; a dry run only
+# reports it, and a dry run never runs the "Upload CurseForge" step.
 
 name: Publish
 
@@ -28,11 +31,6 @@ on:
         description: Check everything but upload nothing
         type: boolean
         default: true
-      platforms:
-        description: Where to upload
-        type: choice
-        options: [both, modrinth, curseforge]
-        default: both
 
 permissions:
   contents: read
@@ -63,7 +61,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PUBLISH_WORKFLOW: publish.yml
-          UPLOAD_STEP: Upload
+          UPLOAD_STEP: Upload CurseForge|Upload
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
         run: node scripts/same_day_guard.mjs
 
@@ -74,22 +72,19 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
-          INPUT_PLATFORMS: ${{ inputs.platforms }}
         run: |
           set -euo pipefail
           if [[ "$REF" == refs/tags/v* ]]; then
-            version="${REF_NAME#v}"; dry_run=false; platforms=both
+            version="${REF_NAME#v}"; dry_run=false
           else
-            version="$INPUT_VERSION"; dry_run="${INPUT_DRY_RUN:-true}"; platforms="${INPUT_PLATFORMS:-both}"
+            version="$INPUT_VERSION"; dry_run="${INPUT_DRY_RUN:-true}"
           fi
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
             echo "Invalid version: $version" >&2; exit 1
           fi
-          case "$platforms" in both|modrinth|curseforge) ;; *) echo "Invalid platforms: $platforms" >&2; exit 1 ;; esac
           {
             echo "version=$version"
             echo "dry_run=$dry_run"
-            echo "platforms=$platforms"
           } >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
@@ -129,14 +124,11 @@ jobs:
       - name: Show upload metadata (dry run, uploads nothing)
         if: ${{ steps.ver.outputs.dry_run == 'true' }}
         env:
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-          MODRINTH_ID: ${{ vars.MODRINTH_ID }}
           CURSEFORGE_ID: ${{ vars.CURSEFORGE_ID }}
           VERSION: ${{ steps.ver.outputs.version }}
           JAR: ${{ steps.jar.outputs.path }}
           DRY_RUN: ${{ steps.ver.outputs.dry_run }}
-          PLATFORMS: ${{ steps.ver.outputs.platforms }}
         run: node scripts/upload-release.cjs
 
       - name: Same-day guard (again, right before upload)
@@ -146,19 +138,16 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PUBLISH_WORKFLOW: publish.yml
-          UPLOAD_STEP: Upload
+          UPLOAD_STEP: Upload CurseForge|Upload
           DRY_RUN: ${{ steps.ver.outputs.dry_run }}
         run: node scripts/same_day_guard.mjs
 
-      - name: Upload
+      - name: Upload CurseForge
         if: ${{ steps.ver.outputs.dry_run != 'true' }}
         env:
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
-          MODRINTH_ID: ${{ vars.MODRINTH_ID }}
           CURSEFORGE_ID: ${{ vars.CURSEFORGE_ID }}
           VERSION: ${{ steps.ver.outputs.version }}
           JAR: ${{ steps.jar.outputs.path }}
           DRY_RUN: ${{ steps.ver.outputs.dry_run }}
-          PLATFORMS: ${{ steps.ver.outputs.platforms }}
         run: node scripts/upload-release.cjs

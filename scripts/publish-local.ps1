@@ -1,6 +1,5 @@
 param(
-  [Parameter(Mandatory = $true)][string]$Version,
-  [ValidateSet('both', 'modrinth', 'curseforge')][string]$Platforms = 'both'
+  [Parameter(Mandatory = $true)][string]$Version
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,4 +26,4 @@ function Import-DotEnv([string]$Path) {
   (Join-Path (Split-Path $root -Parent) '.env')
 ) | ForEach-Object { Import-DotEnv $_ }
 
-node (Join-Path $PSScriptRoot 'publish-local.mjs') --version $Version --platforms $Platforms
+node (Join-Path $PSScriptRoot 'publish-local.mjs') --version $Version

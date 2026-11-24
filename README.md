@@ -94,7 +94,7 @@ Folia (`python3 scripts/smoke_boot.py`).
   checks every feature in game, `run_matrix.sh` runs it on every server, `marketing_shots.py` takes the listing
   screenshots.
 - [`marketing/`](marketing): the listing description and artwork, and how to regenerate it.
-- `.github/workflows/publish.yml`: uploads the jar in `releases/` to Modrinth and CurseForge (owner-triggered).
+- `.github/workflows/publish.yml`: uploads the jar in `releases/` to CurseForge only (owner-triggered).
 
 ## Links
 

@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
- * Local publish for DonutShards — Modrinth + CurseForge.
+ * Local publish for DonutShards to CurseForge (NightBeam convention: CurseForge only since 24 Nov 2026;
+ * the existing Modrinth project gets no new versions).
  *
  * Usage:
- *   node scripts/publish-local.mjs --version 2.0.0 [--platforms both|modrinth|curseforge]
+ *   node scripts/publish-local.mjs --version 2.0.0
  *
  * Requires env (or repo-root .env):
- *   MODRINTH_TOKEN, CURSEFORGE_TOKEN, CURSEFORGE_API_KEY
- *   MODRINTH_ID (default 4krPhA6H), CURSEFORGE_ID (default 1606311)
+ *   CURSEFORGE_TOKEN, CURSEFORGE_API_KEY
+ *   CURSEFORGE_ID (default 1606311)
  */
 import fs from 'fs';
 import path from 'path';
@@ -42,26 +43,18 @@ function arg(name, fallback) {
 }
 
 const version = arg('version');
-const platforms = (arg('platforms', 'both') || 'both').toLowerCase();
 if (!version) {
-  console.error('Usage: node scripts/publish-local.mjs --version 2.0.0 [--platforms both|modrinth|curseforge]');
+  console.error('Usage: node scripts/publish-local.mjs --version 2.0.0');
   process.exit(1);
 }
 
-const doModrinth = platforms === 'both' || platforms === 'modrinth';
-const doCurse = platforms === 'both' || platforms === 'curseforge';
-
-for (const k of [
-  ...(doModrinth ? ['MODRINTH_TOKEN'] : []),
-  ...(doCurse ? ['CURSEFORGE_TOKEN', 'CURSEFORGE_API_KEY'] : []),
-]) {
+for (const k of ['CURSEFORGE_TOKEN', 'CURSEFORGE_API_KEY']) {
   if (!process.env[k]) {
     console.error(`Missing ${k}. Set it in .env or the environment.`);
     process.exit(1);
   }
 }
 
-const MODRINTH_ID = process.env.MODRINTH_ID || '4krPhA6H';
 const CURSEFORGE_ID = process.env.CURSEFORGE_ID || '1606311';
 
 // Same checks as the Publish workflow: one releases/donutshards-*-<version>.jar whose name matches
@@ -116,39 +109,9 @@ function resolveChangelog(ver) {
 
 const changelog = resolveChangelog(version);
 
-console.log(`Publishing ${path.basename(jar)} (${loaders.join('+')}, ${gameVersions.length} MC versions) to ${platforms}`);
+console.log(`Publishing ${path.basename(jar)} (${loaders.join('+')}, ${gameVersions.length} MC versions) to CurseForge`);
 
 await (async () => {
-  if (doModrinth) {
-    const body = {
-      name: version,
-      version_number: version,
-      changelog,
-      dependencies: [],
-      game_versions: gameVersions,
-      version_type: 'release',
-      loaders,
-      featured: true,
-      status: 'listed',
-      project_id: MODRINTH_ID,
-      file_parts: ['file_0'],
-      primary_file: 'file_0',
-    };
-    const form = new FormData();
-    form.append('data', JSON.stringify(body));
-    form.append('file_0', new Blob([fs.readFileSync(jar)]), path.basename(jar));
-    const mrRes = await fetch('https://api.modrinth.com/v2/version', {
-      method: 'POST',
-      headers: { Authorization: process.env.MODRINTH_TOKEN },
-      body: form,
-    });
-    const mrText = await mrRes.text();
-    if (!mrRes.ok) throw new Error(`Modrinth ${mrRes.status} ${mrText.slice(0, 500)}`);
-    console.log('Modrinth OK', version, loaders.join('+'), gameVersions.length, 'MC versions');
-  }
-
-  if (!doCurse) return;
-
   let flat = [];
   const uploadGv = await fetch('https://minecraft.curseforge.com/api/game/versions', {
     headers: { 'X-Api-Token': process.env.CURSEFORGE_TOKEN },
